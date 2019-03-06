@@ -22,7 +22,7 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
         pythonBinary = "python2",
         attractToolPath = "$ATTRACTTOOLS",
         attractBinPath = "$ATTRACTDIR",
-        attractParFile = "$ATTRACTDIR/..",
+        attractParFile = "$ATTRACTDIR/../attract.par",
         dry = False,
         verbose = False,
         overwrite = False
@@ -162,9 +162,9 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         pythonBinary = "python2",
         attractToolPath = "$ATTRACTTOOLS",
         attractBinPath = "$ATTRACTDIR",
-        attractParFile = "$ATTRACTDIR/..",
+        attractParFile = "$ATTRACTDIR/../attract.par",
         attractBinary = "$ATTRACTDIR/attract",
-        attractBinaryGPU = "$ATTRACTDIR/AttractServer",
+        attractBinaryGPU = "/home/glenn/Documents/Masterarbeit/git/gpuATTRACT_2.0/AttractServer_RELEASE1",
         dry = False,
         verbose = False,
         overwrite = False
@@ -324,7 +324,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "dryRun": dry,
                 "overwrite": overwrite,
                 "verbose": verbose,
-                "dofbinary": "/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systseach"
+                "dofbinary": "/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch"
             },
             "joinModes":{
                 "in": {"receptorModes": "modesRec","ligandModes": "modesLig"  },

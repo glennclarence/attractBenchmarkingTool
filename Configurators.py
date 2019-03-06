@@ -141,16 +141,19 @@ def dockingFunction(config,setting):
     attractBinary = dockSettings['GPUattractBinary']
     receptor = config.getInputFile(setting,'receptor')
     ligand = config.getInputFile(setting,'ligand')
-    gridRec = config.getInputFile(setting,'alphabetRec')
-    gridLig = config.getInputFile(setting,'alphabetLig')
+    gridRec = config.getInputFile(setting,'gridRec')
+    gridLig = config.getInputFile(setting,'gridLig')
 
     alphabetRec = config.getInputFile(setting,'alphabetRec')
     alphabetLig = config.getInputFile(setting,'alphabetLig')
     modesRec = config.getInputFile(setting,'modesRec')
     modesLig = config.getInputFile(setting,'modesLig')
     result = config.getOutputFile(setting,'out')
-    
-    bash_command = "{} em --dof {} -p {} --alphabetrec {} --alphabetlig {} --gridrec {} --gridlig {} -r {} -l {} --numModesRec {} --numModesLig {} --modesr {} --modesl {} -d 0  > {}".format(attractBinary,dof,  dockSettings["attractParFile"], alphabetRec, alphabetLig, gridRec, gridLig, receptor, ligand, dockSettings["numModesRec"],dockSettings["numModesLig"], modesRec, modesLig, result  )
+
+    mode_string = ""
+    if dockSettings["numModesRec"] > 0 or dockSettings["numModesLig"] > 0 :
+        mode_string = "--numModesRec {} --numModesLig {} --modesr {} --modesl {}".format(dockSettings["numModesRec"],dockSettings["numModesLig"], modesRec, modesLig)
+    bash_command = "{} em --dof {} -p {} --alphabetrec {} --alphabetlig {} --gridrec {} --gridlig {} -r {} -l {} {} -d 0  > {}".format(attractBinary,dof,  dockSettings["attractParFile"], alphabetRec, alphabetLig, gridRec, gridLig, receptor, ligand,mode_string , result  )
     runCommand(config, setting, bash_command)
 
 #scoring
@@ -164,7 +167,10 @@ def scoringFunction(config,setting):
     modes = config.getInputFile(setting,    'joinedModes')
     result = config.getOutputFile(setting,  'out')
     
-    bash_command = "{} {} {} {} {} --fix-receptor --modes {} --numModesRec {} --numModesLig  {} --vmax 1000  --rcut 50 --score > {}".format(attractBinary,dof,scoringSettings["attractParFile"],receptor,ligand,modes,scoringSettings["numModesRec"],scoringSettings["numModesLig"],result)
+    mode_string = ""
+    if scoringSettings["numModesRec"] > 0 or scoringSettings["numModesLig"] > 0 :
+        mode_string = "--numModesRec {} --numModesLig {} --modes {}".format(scoringSettings["numModesRec"],scoringSettings["numModesLig"], modes)
+    bash_command = "{} {} {} {} {} --fix-receptor  --vmax 1000  --rcut 50 {} --score > {}".format(attractBinary,dof,scoringSettings["attractParFile"],receptor,ligand,mode_string,result)
     runCommand(config, setting, bash_command)
 
 #Sorting
@@ -214,7 +220,7 @@ def topFunction(config,setting):
 
 #IRMSD
 def IRMSDFunction(config,setting):
-    toolPath =      config.getSetting(          'attractToolPath')
+    toolPath =      config.getSetting(          'attractBinPath')
     inputDofFile =  config.getInputFile(setting,'inputDof')
     receptor =      config.getInputFile(setting,'receptor')
     receptorRef =   config.getInputFile(setting,'receptorRef')
@@ -229,7 +235,7 @@ def IRMSDFunction(config,setting):
 
 #RMSD
 def RMSDFunction(config,setting):
-    toolPath =          config.getSetting(          'attractToolPath')
+    toolPath =          config.getSetting(          'attractBinPath')
     inputDofFile =      config.getInputFile(setting,'inputDof')
     receptorRef =       config.getInputFile(setting,'receptorRef')
     ligand =            config.getInputFile(setting,'ligand')
@@ -243,7 +249,7 @@ def RMSDFunction(config,setting):
 
 #fnat
 def FNATFunction(config,setting):
-    toolPath =      config.getSetting(          'attractToolPath')
+    toolPath =      config.getSetting(          'attractBinPath')
     inputDofFile =  config.getInputFile(setting,'inputDof')
     receptor =      config.getInputFile(setting,'receptor')
     receptorRef =   config.getInputFile(setting,'receptorRef')
@@ -262,9 +268,11 @@ def CollectFunction(config,setting):
     inputDofFile =  config.getInputFile(setting,'inputDof')
     receptor =      config.getInputFile(setting,'receptor')
     ligand =        config.getInputFile(setting,'ligand')
+    modes =         config.getInputFile(setting,'modes')
+
     output =        config.getOutputFile(setting,'out')
 
-    bash_command = "{}/collect {} {} {} > {}".format(attractBinPath, inputDofFile, receptor, ligand, output)
+    bash_command = "{}/collect {} {} {} --modes {} > {}".format(attractBinPath, inputDofFile, receptor, ligand,modes, output)
     runCommand(config, setting, bash_command)
 
 #specify configurators

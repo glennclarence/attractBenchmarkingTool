@@ -53,8 +53,7 @@ runConfiguration = [
         TopConfigurator,
         IRMSDConfigurator,
         RMSDConfigurator,
-        FNATConfigurator,
-        CollectConfigurator],
+        FNATConfigurator],
     'numThreads': 1}
     ]
 
@@ -62,19 +61,17 @@ runConfiguration = [
 
 
 protein="3MXW"
-chain="A"
 protType = "unbound"
 protTypeRef = "refe"
-basePath = "basePath"
-numModesRec = 5
-numModesLig = 5
+basePath = "/home/glenn/Documents/3MXW/3MXW"
+numModesRec = 0
+numModesLig = 0
 bm = "test"
-dry = True
+dry = False
 verbose = True
 
-pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath, dry=dry, verbose = verbose ))
 
-
+print("\n create configrations")
 receptorConfig  = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath, dry=dry ,verbose = verbose))
 ligandConfig    = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath, dry=dry ,verbose = verbose))
 receptorRefConfig = Configuration(getDefaultSingleSetting(  protein=protein, chain="A", protType = protTypeRef, numModes = numModesRec,basePath = basePath, dry=dry ,verbose = verbose))
@@ -82,6 +79,10 @@ ligandRefConfig = Configuration(getDefaultSingleSetting(    protein=protein, cha
 
 receptorConfig.files['alphabetPartner'] = ligandConfig.files['alphabet'] 
 ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
+
+pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath, dry=dry, verbose = verbose, overwrite = True,
+attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" ))
+
 
 pairFiles = pairConfig.files
 pairFiles['receptor'] =     receptorConfig.files['reduce']
@@ -99,9 +100,12 @@ pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
 pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
 
 
+pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
 
-
+#ToDo: no error if buffersize is smaller than num
 bufferSize = 10
+print("\n create queues")
+
 inputRecQ = queue.Queue(bufferSize)
 inputLigQ = queue.Queue(bufferSize)
 
@@ -119,7 +123,7 @@ pairQ = queue.Queue(bufferSize)
 pairQOutConfig = queue.Queue(bufferSize)
 pairQOutRes = queue.Queue(bufferSize)
 
-num = 10
+num = 1
 for i in range(num):
     inputRecQ.put((receptorConfig,i))
     inputLigQ.put((ligandConfig,i))
@@ -142,31 +146,31 @@ pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, si
 #runpairconfiguration
 pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConfiguration,  num)
 #run docking, scoring and analysis
-pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
+pipelinePairRun     = createPipeline( pairQ, pairQOutRes,bufferSize, runConfiguration,  num)
 
 print("\n DO REFERENCE CONFIGURATION")
-pipelineRecRef.start()
-pipelineLigRef.start()
-pipelineRecRef.join()
-pipelineLigRef.join()
+# pipelineRecRef.start()
+# pipelineLigRef.start()
+# pipelineRecRef.join()
+# pipelineLigRef.join()
 
-print("\n DO FIRST CONFIGURATION")
-pipelineRec.start()
-pipelineLig.start()
-pipelineRec.join()
-pipelineLig.join()
+# print("\n DO FIRST CONFIGURATION")
+# pipelineRec.start()
+# pipelineLig.start()
+# pipelineRec.join()
+# pipelineLig.join()
 
-print("\nDO SECOND CONFIGURATION")
-pipelineRec2.start()
-pipelineLig2.start()
-pipelineRec2.join()
-pipelineLig2.join()
+# print("\nDO SECOND CONFIGURATION")
+# pipelineRec2.start()
+# pipelineLig2.start()
+# pipelineRec2.join()
+# pipelineLig2.join()
 
-print("\n DO PAIR CONFIGURATION")
-pipelinePairConfig.start()
-pipelinePairConfig.join()
+# print("\n DO PAIR CONFIGURATION")
+# pipelinePairConfig.start()
+# pipelinePairConfig.join()
 
-print("\n DO RUN")
+# print("\n DO RUN")
 pipelinePairRun.start()
 pipelinePairRun.join()
 

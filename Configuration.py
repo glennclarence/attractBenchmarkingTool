@@ -85,7 +85,7 @@ class Configuration:
 
     def overwriteOutput(self,setting):
         """return weather output maybe overwritte or not"""
-        return self.settings[setting]
+        return self.settings[setting]['overwrite']
     
     def changeAttribute(self, key, value):
         """Find a configuration key and change its value. Slower than addOrChangemembers"""
@@ -100,8 +100,11 @@ class Configuration:
     def save(self, filename):
         """Saves configuration to a json file"""
         with open(filename, "w") as write_file:
-            json.dump(self.files, write_file)
-            json.dump(self.settings, write_file)
+            safeDict = {}
+            safeDict['files'] = self.files
+            safeDict['settings'] = self.settings
+
+            json.dump(safeDict, write_file)
 
     def getInputFile(self, setting, inFileId):
         setting = self.settings[setting]
