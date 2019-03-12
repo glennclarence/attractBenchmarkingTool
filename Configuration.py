@@ -34,15 +34,23 @@ class Configuration:
     def getFile(self, fileId):
         try:
             entry = self.files[fileId]
-        
         #print("get file", fileId, entry, os.path.join( self.basePath,  os.path.join(entry['folder'], entry['name'] + entry['extension'])))
             return os.path.join( self.basePath,  os.path.join(entry['folder'], entry['name'] + entry['extension']))
         except Exception as error:
+        #except:
+            pass
             print("getFile: fileId {} not in files. ConfigurationId {}".format(fileId, self.id)," Original message", error)
+            raise
 
     def fileExists(self,fileKey):
         """returns true if files exist"""
-        return True if os.path.isfile(self.getFile(fileKey)) else False
+        try:
+            filename = self.getFile(fileKey)
+            return True if os.path.isfile(filename) else False
+
+        except:
+            print("fileExists: Could not get File "+ str(fileKey))
+            raise
 
     def inputFilesExist(self,setting):
         """returns true if all input files exist"""
@@ -52,8 +60,12 @@ class Configuration:
         inFiles = self.settings[setting]['in']
         exists = True
         for fileid in inFiles.values():
-            if not self.fileExists(fileid):
-                exists = False
+            try:
+                if not self.fileExists(fileid):
+                    exists = False
+            except:
+                pass
+                return False
         return exists
 
     def outputFilesExist(self,setting):
@@ -72,9 +84,14 @@ class Configuration:
         """returns all the inputfiles that do not exist"""
         notExisting = []
         inFiles = self.settings[setting]['in']
-        for fileId in inFiles.values():
-            if not self.fileExists(fileId):
-                notExisting.append(self.getFile(fileId))
+        for key,fileId in inFiles.items():
+            try:
+                if not self.fileExists(fileId):
+                    filename = self.getFile(fileId)
+                    notExisting.append(filename)
+            except:
+                print("getNotExistingInput: Could not get File " + key+" fileId "+str(fileId) + " setting " + setting)
+                
         return notExisting
 
     def getOutputFolder(self,setting):
@@ -109,10 +126,16 @@ class Configuration:
     def getInputFile(self, setting, inFileId):
         setting = self.settings[setting]
         fileId = setting['in'][inFileId]
-        return self.getFile(fileId)
+        try:
+            return self.getFile(fileId)
+        except:
+            print("getInputFile: could not get file" + inFileId + "setting " + setting)
 
     def getOutputFile(self, setting, inFileId):
         setting = self.settings[setting]
         fileId = setting['out'][inFileId]
-        return self.getFile(fileId)
+        try:
+            return self.getFile(fileId)
+        except:
+            print("Could not find file: " + inFileId)
     

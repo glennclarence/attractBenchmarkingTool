@@ -36,10 +36,8 @@ class ConsumerThread(threading.Thread):
 
     def run(self):
         while not self.kill.is_set():
-
             if not self.inputQueue.empty():
                 ( item, id ) = self.inputQueue.get()
-                
                 for configurator in self.configurators:
                     #try:
                         configurator.setConfig(item)

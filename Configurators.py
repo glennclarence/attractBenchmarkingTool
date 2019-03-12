@@ -1,15 +1,15 @@
 from ConfiguratorBase import Configurator
 from Configuration import Configuration
-
-
 import os
+
+import utils as utils
+import json
 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
         print(command)
     if not configuration.getSetting(setting)["dryRun"]:
         os.system(command)
-
 
 #create reduced proteins
 def reduceFunction(config,setting):
@@ -58,7 +58,6 @@ def modeFunction(config,setting):
     inPb = config.getInputFile(setting,'protein')
     pythonBinary = config.getSetting('pythonBinary')
 
-    
     bash_command = "{} {}/modes.py {} {} > {} ".format(pythonBinary,toolPath, inPb, numModes, output)
     runCommand(config, setting,bash_command)
 
@@ -78,7 +77,7 @@ def gridFunction(config,setting):
    
     attractBinPath = config.getSetting('attractBinPath')
     param = config.getSetting("attractParFile")
-    bash_command = "{}/make-grid-omp {} {} 10.0 12.0 {}  --alphabet {}".format(attractBinPath,inPb,param, output, alphabet)
+    bash_command = "{}/make-grid-omp {} {} 10.0 12.0 {}  --alphabet {} > /dev/null".format(attractBinPath,inPb,param, output, alphabet)#attractBinPath
     runCommand(config, setting,bash_command)
        
 #create dof File
@@ -150,10 +149,16 @@ def dockingFunction(config,setting):
     modesLig = config.getInputFile(setting,'modesLig')
     result = config.getOutputFile(setting,'out')
 
+    devices = dockSettings["GPUdeviceIds"]
+    d_string = ""
+    if len(devices) > 0:
+        for d in devices:
+            d_string += " -d {}".format(d)
+
     mode_string = ""
     if dockSettings["numModesRec"] > 0 or dockSettings["numModesLig"] > 0 :
-        mode_string = "--numModesRec {} --numModesLig {} --modesr {} --modesl {}".format(dockSettings["numModesRec"],dockSettings["numModesLig"], modesRec, modesLig)
-    bash_command = "{} em --dof {} -p {} --alphabetrec {} --alphabetlig {} --gridrec {} --gridlig {} -r {} -l {} {} -d 0  > {}".format(attractBinary,dof,  dockSettings["attractParFile"], alphabetRec, alphabetLig, gridRec, gridLig, receptor, ligand,mode_string , result  )
+        mode_string = "--numModesRec {} --numModesLig {} --modesr {} --modesl {} --evscale {}".format(dockSettings["numModesRec"],dockSettings["numModesLig"], modesRec, modesLig, dockSettings['evScale'])
+    bash_command = "{} em --dof {} -p {} --alphabetrec {} --alphabetlig {} --gridrec {} --gridlig {} -r {} -l {} {} {}  > {}".format(attractBinary,dof,  dockSettings["attractParFile"], alphabetRec, alphabetLig, gridRec, gridLig, receptor, ligand,mode_string ,d_string, result  )
     runCommand(config, setting, bash_command)
 
 #scoring
@@ -169,7 +174,7 @@ def scoringFunction(config,setting):
     
     mode_string = ""
     if scoringSettings["numModesRec"] > 0 or scoringSettings["numModesLig"] > 0 :
-        mode_string = "--numModesRec {} --numModesLig {} --modes {}".format(scoringSettings["numModesRec"],scoringSettings["numModesLig"], modes)
+        mode_string = "--numModesRec {} --numModesLig {} --modes {} --evscale {}".format(scoringSettings["numModesRec"],scoringSettings["numModesLig"], modes, scoringSettings['evScale'])
     bash_command = "{} {} {} {} {} --fix-receptor  --vmax 1000  --rcut 50 {} --score > {}".format(attractBinary,dof,scoringSettings["attractParFile"],receptor,ligand,mode_string,result)
     runCommand(config, setting, bash_command)
 
@@ -192,9 +197,13 @@ def RedundantFunction(config,setting):
     toolPath = config.getSetting(               'attractToolPath')
     output = config.getOutputFile(setting,"out")
     pythonBinary = config.getSetting('pythonBinary')
-    
-    bash_command = "{}/deredundant {} 2 --modes {} {} | {} {}/fill-deredundant.py /dev/stdin {} > {}".format(
-        attractBinPath, inputDofFile, RedundantSetting['numModesRec'], RedundantSetting['numModesLig'], pythonBinary, toolPath,
+
+    mode_string = ""
+    if RedundantSetting['numModesRec'] > 0 or RedundantSetting['numModesLig'] > 0:
+        mode_string = "--modes {} {} ".format( RedundantSetting['numModesRec'], RedundantSetting['numModesLig'])
+
+    bash_command = "{}/deredundant {} 2 {} | {} {}/fill-deredundant.py /dev/stdin {} > {}".format(
+        attractBinPath, inputDofFile, mode_string, pythonBinary, toolPath,
         inputDofFile, output)
     runCommand(config, setting, bash_command)
 
@@ -220,6 +229,7 @@ def topFunction(config,setting):
 
 #IRMSD
 def IRMSDFunction(config,setting):
+    irmsdSetting =    config.getSetting(        setting)
     toolPath =      config.getSetting(          'attractBinPath')
     inputDofFile =  config.getInputFile(setting,'inputDof')
     receptor =      config.getInputFile(setting,'receptor')
@@ -230,11 +240,16 @@ def IRMSDFunction(config,setting):
     output =        config.getOutputFile(setting,'out')
     pythonBinary = config.getSetting('pythonBinary')
 
-    bash_command = "{} {}/irmsd.py {} {} {} {} {} --modes {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, lignadRef,modes,output)
+    mode_string = ""
+    if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
+        mode_string = "--modes {}".format(modes)
+
+    bash_command = "{} {}/irmsd.py {} {} {} {} {}  {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, lignadRef,mode_string,output)
     runCommand(config, setting, bash_command)
 
 #RMSD
 def RMSDFunction(config,setting):
+    rmsdSetting =    config.getSetting(        setting)
     toolPath =          config.getSetting(          'attractBinPath')
     inputDofFile =      config.getInputFile(setting,'inputDof')
     receptorRef =       config.getInputFile(setting,'receptorRef')
@@ -244,11 +259,16 @@ def RMSDFunction(config,setting):
     output =            config.getOutputFile(setting,'out')
     pythonBinary = config.getSetting('pythonBinary')
 
-    bash_command = "{} {}/lrmsd.py {} {} {} --modes {} --receptor {} > {}".format(pythonBinary,toolPath, inputDofFile , ligand, ligandRef,modes,receptorRef,output)
+    mode_string = ""
+    if rmsdSetting['numModesRec'] > 0  or rmsdSetting['numModesLig'] > 0 :
+        mode_string = " --modes {} ".format(modes)
+
+    bash_command = "{} {}/lrmsd.py {} {} {} {} --receptor {} > {}".format(pythonBinary,toolPath, inputDofFile , ligand, ligandRef,mode_string,receptorRef,output)
     runCommand(config, setting, bash_command)
 
 #fnat
 def FNATFunction(config,setting):
+    fnatSetting =   config.getSetting(setting)
     toolPath =      config.getSetting(          'attractBinPath')
     inputDofFile =  config.getInputFile(setting,'inputDof')
     receptor =      config.getInputFile(setting,'receptor')
@@ -259,81 +279,162 @@ def FNATFunction(config,setting):
     output =        config.getOutputFile(setting,'out')
     pythonBinary = config.getSetting('pythonBinary')
 
-    bash_command = "{} {}/fnat.py {} 5 {} {} {} {} --modes {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, ligandRef,modes,output)
+    mode_string = ""
+    if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
+        mode_string = " --modes {} ".format(modes)
+
+    bash_command = "{} {}/fnat.py {} 5 {} {} {} {} {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, ligandRef,mode_string,output)
     runCommand(config, setting, bash_command)
 
 #collect pdbs from the resulting dofs
 def CollectFunction(config,setting):
-    attractBinPath = config.getSetting(         'attractBinPath')
-    inputDofFile =  config.getInputFile(setting,'inputDof')
-    receptor =      config.getInputFile(setting,'receptor')
-    ligand =        config.getInputFile(setting,'ligand')
-    modes =         config.getInputFile(setting,'modes')
-
+    """Saves the best scored structures to a pdb file. The number of structures has to be specified"""
+    collectSetting = config.getSetting(setting)
+    attractBinPath = config.getSetting(          'attractBinPath')
+    inputDofFile =  config.getInputFile(setting, 'inputDof')
+    receptor =      config.getInputFile(setting, 'receptor')
+    ligand =        config.getInputFile(setting, 'ligand')
+    modes =         config.getInputFile(setting, 'modes')
     output =        config.getOutputFile(setting,'out')
 
-    bash_command = "{}/collect {} {} {} --modes {} > {}".format(attractBinPath, inputDofFile, receptor, ligand,modes, output)
+    mode_string =""
+    if collectSetting['numModesRec'] > 0 or collectSetting["numModesLig"] > 0:
+        mode_string =" --modes {}".format(modes)
+    bash_command = "{}/collect {} {} {} {} > {}".format(attractBinPath, inputDofFile, receptor, ligand,mode_string, output)
     runCommand(config, setting, bash_command)
 
-#specify configurators
+#save the configuration
+def saveSettings(config, setting):
+    """ saves the configuration to the specified filename"""
+    configFilename = config.getOutputFile(setting, 'out')
+    if config.getSetting(setting)['verbose']:
+        print("saving configFile to " + configFilename)
+    if not config.getSetting(setting)["dryRun"]:
+        config.save(configFilename)
+
+def cutTermini(config, setting):
+    cutSetting = config.getSetting(setting)
+    inputPdb = config.getInputFile(setting, "pdb")
+    cutPdb = config.getOutputFile(setting, "out")
+    cutlog = config.getOutputFile(setting, "cutlog")
+    if config.getSetting(setting)['verbose']:
+        print("Cut Termini from  " + inputPdb + " and output to " + cutPdb)
+    if not config.getSetting(setting)["dryRun"]:
+        log = utils.findAndCutLooseTermini(inputPdb, cutPdb, cutSetting['cutoff'])
+        log['cutoff'] = cutSetting['cutoff']
+        utils.saveToJson(cutlog, log)
+
+#creates a secondary structure file from an input pdb file
+def CreateSecondary(config, setting):
+    inputPdb = config.getInputFile(setting, "pdb")
+    secdondaryFile = config.getOutputFile(setting, "out")
+
+    bash_command ="stride {} > {}".format(inputPdb, secdondaryFile)
+    runCommand(config, setting, bash_command)
+
+def GetInterface(config, setting):
+    #receptor = config.getInputFile(setting, 'receptor')
+    #ligand = config.getInputFile(setting,'ligand')
+    pdb = config.getInputFile(setting, 'pdb')
+    interfaceFile = config.getOutputFile(setting,'out')
+    cutoff = config.getSetting(setting)['cutoff']
+
+    if config.getSetting(setting)['verbose']:
+        print("Get interface from pdb " + pdb )
+    if not config.getSetting(setting)["dryRun"]:
+        
+        structures = utils.parseBIOPdbToStructure(pdb)
+        interfaces = []
+        for struct in structures:
+            receptor = struct['A']       
+            ligand = struct['B']                
+        
+            contactResiduesRec, contactResiduesLig = utils.getInterfaceResidues(receptor,ligand,cutoff )
+            recinterfaceResidues = utils.getResidueIds(contactResiduesRec)
+            liginterfaceResidues = utils.getResidueIds(contactResiduesLig)
+
+            info = {
+                'model': struct.id,
+                
+                "recInterfaceResidues": recinterfaceResidues, 
+                "ligInterfaceResidues": liginterfaceResidues
+            }
+            interfaces.append(info)
+        
+        utils.saveToJson(interfaceFile, {'file': pdb, 'cutoff': cutoff,'interfaces': interfaces})
+    
+
+########################specify configurators########################
 
 #create coarsegrained representation of protein
-ReduceConfigurator      = Configurator('reduce',reduceFunction)
+ReduceConfigurator      = Configurator('reduce', reduceFunction)
 
 #create all Atom Model of protein
-AllAtomConfigurator     = Configurator('allAtom',allAtomFunction)
+AllAtomConfigurator     = Configurator('allAtom', allAtomFunction)
 
 #create heavy atom model of protein
-HeavyConfigurator       = Configurator('heavy',heavyFunction)
+HeavyConfigurator       = Configurator('heavy', heavyFunction)
 
 #create alphabet file of protein. Needed to calculate thr grid of the partner
 
-AlphabetConfigurator    = Configurator('alphabet',alphabetFunction)
+AlphabetConfigurator    = Configurator('alphabet', alphabetFunction)
 
 #create modes for protein
-ModeConfigurator        = Configurator('modes',modeFunction)
+ModeConfigurator        = Configurator('modes', modeFunction)
 
 #create grid for a given protein
-GridConfigurator        = Configurator('grid',gridFunction)
+GridConfigurator        = Configurator('grid', gridFunction)
 
 #create dofs for a receptor ligand pair
-DofConfigurator         = Configurator('dof',dofFunction)
+DofConfigurator         = Configurator('dof', dofFunction)
 
 #join two modefiles together into one file
-JoinModesConfigurator   = Configurator('joinModes',joinModesFunction)
+JoinModesConfigurator   = Configurator('joinModes', joinModesFunction)
 
 #create a CA- only represenetation of a protein
-CAConfigurator          = Configurator('CA',CAFunction)
+CAConfigurator          = Configurator('CA', CAFunction)
 
 #cut free termini
-CutConfigurator         = Configurator('cut',cutFunction)
+CutConfigurator         = Configurator('cut', cutFunction)
 
 #dock receptor and ligand
-DockingConfigurator     = Configurator('docking',dockingFunction)
+DockingConfigurator     = Configurator('docking', dockingFunction)
 
 #score results
-ScoringConfigurator     = Configurator('scoring',scoringFunction)
+ScoringConfigurator     = Configurator('scoring', scoringFunction)
 
 #sort results by energy
-SortingConfigurator     = Configurator('sorting',SortingFunction)
+SortingConfigurator     = Configurator('sorting', SortingFunction)
 
-#remove redundant results
-DeRedundantConfigurator   = Configurator('deredundant',RedundantFunction)
+#removes redundant results 
+DeRedundantConfigurator = Configurator('deredundant', RedundantFunction)
 
-#remoce modes from results
-DemodeConfigurator      = Configurator('demode',demodeFunction)
+#remove modes from results
+DemodeConfigurator      = Configurator('demode', demodeFunction)
 
 #create a new file with the specified number of top results e.g. 50
 TopConfigurator         = Configurator('top',topFunction)
 
 #calculate the rmsd for a dof -fil input
-RMSDConfigurator        = Configurator('rmsd',RMSDFunction)
+RMSDConfigurator        = Configurator('rmsd', RMSDFunction)
 
 #reate interface rmsd for a dof -file and the receptor/ligand
-IRMSDConfigurator       = Configurator('irmsd',IRMSDFunction)
+IRMSDConfigurator       = Configurator('irmsd', IRMSDFunction)
 
 #calculate the native contact for a given dof file and receptor/ligand
-FNATConfigurator        = Configurator('fnat',FNATFunction)
+FNATConfigurator        = Configurator('fnat', FNATFunction)
 
 #create pdbfiles for given dofs and receptor/ligand
-CollectConfigurator     = Configurator('collect',CollectFunction)
+CollectConfigurator     = Configurator('collect', CollectFunction)
+
+#allows to save the configuration to file
+SaveSettingConfigurator = Configurator('saveSettings', saveSettings )
+
+#cuts of all residues of a protein that is have no second next neighbor below a cutoff (~5.5Angstroem)
+CutTerminiConfigurator  = Configurator('cut', cutTermini)
+
+#creates a secondary structure file of the inputpdb according to stride
+SecondaryConfigurator   = Configurator('secondary', CreateSecondary)
+
+#analyses the interface of two structures
+InterfaceCondigurator   = Configurator('interface', GetInterface)

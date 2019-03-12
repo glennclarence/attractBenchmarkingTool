@@ -9,7 +9,9 @@ singleConfiguration_01 = [
         [
         ReduceConfigurator,
         ModeConfigurator,
-        AlphabetConfigurator
+        AlphabetConfigurator,
+        CutTerminiConfigurator,
+        SecondaryConfigurator
         ],
     'numThreads': 1}
 ]
@@ -42,7 +44,7 @@ pairConfiguration = [
 runConfiguration = [
     {'conf':
         DockingConfigurator,
-    'numThreads': 2},
+    'numThreads': 1},
     {'conf':
         ScoringConfigurator,
     'numThreads': 1},
@@ -53,23 +55,29 @@ runConfiguration = [
         TopConfigurator,
         IRMSDConfigurator,
         RMSDConfigurator,
-        FNATConfigurator],
+        FNATConfigurator,
+        SaveSettingConfigurator,
+        CollectConfigurator,
+        InterfaceCondigurator
+        ],
     'numThreads': 1}
     ]
 
 
 
 
-protein="3MXW"
+protein="4G6J"
+#protein= "3MXW"
 protType = "unbound"
 protTypeRef = "refe"
-basePath = "/home/glenn/Documents/3MXW/3MXW"
-numModesRec = 0
-numModesLig = 0
-bm = "test"
+basePath = "/home/glenn/4G6J"
+#basePath = "/home/glenn/Documents/3MXW/3MXW"
+numModesRec = 1
+numModesLig = 1
+bm = "test_mr{}_ml{}_s".format(numModesRec, numModesLig)
 dry = False
 verbose = True
-
+overwrite = False
 
 print("\n create configrations")
 receptorConfig  = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath, dry=dry ,verbose = verbose))
@@ -80,8 +88,9 @@ ligandRefConfig = Configuration(getDefaultSingleSetting(    protein=protein, cha
 receptorConfig.files['alphabetPartner'] = ligandConfig.files['alphabet'] 
 ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
 
-pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath, dry=dry, verbose = verbose, overwrite = True,
-attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" ))
+pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
+numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath, dry=dry, verbose = verbose, overwrite = overwrite,
+attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" , attractBinPath= "/home/glenn/4G6J/attract/bin", attractParFile="/home/glenn/Documents/attract/attract.par",deviceIds = [0,1]))
 
 
 pairFiles = pairConfig.files
@@ -100,7 +109,7 @@ pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
 pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
 
 
-pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
+#pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
 
 #ToDo: no error if buffersize is smaller than num
 bufferSize = 10
@@ -146,33 +155,35 @@ pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, si
 #runpairconfiguration
 pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConfiguration,  num)
 #run docking, scoring and analysis
-pipelinePairRun     = createPipeline( pairQ, pairQOutRes,bufferSize, runConfiguration,  num)
+pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
 
 print("\n DO REFERENCE CONFIGURATION")
-# pipelineRecRef.start()
-# pipelineLigRef.start()
-# pipelineRecRef.join()
-# pipelineLigRef.join()
+pipelineRecRef.start()
+pipelineLigRef.start()
+pipelineRecRef.join()
+pipelineLigRef.join()
 
-# print("\n DO FIRST CONFIGURATION")
-# pipelineRec.start()
-# pipelineLig.start()
-# pipelineRec.join()
-# pipelineLig.join()
+print("\n DO FIRST CONFIGURATION")
+pipelineRec.start()
+pipelineLig.start()
+pipelineRec.join()
+pipelineLig.join()
 
-# print("\nDO SECOND CONFIGURATION")
-# pipelineRec2.start()
-# pipelineLig2.start()
-# pipelineRec2.join()
-# pipelineLig2.join()
+print("\nDO SECOND CONFIGURATION")
+pipelineRec2.start()
+pipelineLig2.start()
+pipelineRec2.join()
+pipelineLig2.join()
 
-# print("\n DO PAIR CONFIGURATION")
-# pipelinePairConfig.start()
-# pipelinePairConfig.join()
+print("\n DO PAIR CONFIGURATION")
+pipelinePairConfig.start()
+pipelinePairConfig.join()
 
-# print("\n DO RUN")
+print("\n DO RUN")
 pipelinePairRun.start()
 pipelinePairRun.join()
+
+
 
 
 # print("\nRUN RECEPTOR CONFIG")
@@ -213,3 +224,27 @@ pipelinePairRun.join()
 # for configurator in runConfiguration:
 #     configurator.setConfig(pairConfig)
 #     configurator.run()
+# files2 =[
+# '/home/glenn/work/benchmark5_attract/4G6J/input/dofs1_2.dat',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-reduce.pdb',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-reduce.pdb',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-grid.alphabet',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-grid.alphabet',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-1-modes.dat',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-1-modes.dat']
+
+
+# def filetolines(name):
+#     lines =[]
+#     with open(name) as f:
+#         lines = f.readlines()
+#         return lines
+
+# for f1, f2 in zip(files1, files2):
+#     print("\n\n",f1, f2)
+#     l1 = filetolines(f1)
+#     l2 = filetolines(f2)
+#     print(len(l1), len(l2))
+#     for i,(l1l, l2l) in enumerate(zip(l1,l2)):
+#         if not l1l == l2l:
+#             print(i,"\n",l1l.split() ,"\n", l2l.split())

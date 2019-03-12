@@ -25,13 +25,14 @@ class Configurator:
         return os
         
     def run(self):
-        #print (self.config.getSetting(self.setting)['dryRun'])
         if not self.config.getSetting(self.setting)['dryRun']:
             if self.config.inputFilesExist(self.setting):
                 if not self.config.outputFilesExist(self.setting) or self.config.overwriteOutput(self.setting):
                     if not os.path.isdir(self.config.getOutputFolder(self.setting)):
                         os.system("mkdir -p {} ".format(self.config.getOutputFolder(self.setting)))
                     self.configFunc(self.config,self.setting)
+            else:
+                self.config.getNotExistingInput(self.setting)
         else:
             self.configFunc(self.config,self.setting)
         #else:
