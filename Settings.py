@@ -25,7 +25,8 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
         attractParFile = "$ATTRACTDIR/../attract.par",
         dry = False,
         verbose = False,
-        overwrite = False
+        overwrite = False,
+        terminiCutoff = 5.5
     ):
     singleSetting = {
     "id":"{}{}-single".format(protein, chain ),
@@ -37,11 +38,23 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    ".pdb"
             },
+        'refpdb':
+            {
+                'folder':       "",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    ".pdb"
+            },
         'reduce':
             {
                 'folder':       "input/pdb",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    "-r.pdb"
+            },
+        'mapping':
+            {
+                'folder':       "input/pdb",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-mapping.pdb"
             },
         'allAtom':
             {
@@ -102,11 +115,17 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             {
                 'folder':       "input/secondary",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
-                "extension":    ".stride".format(numModes,modeType)
+                "extension":    ".stride"
+            },
+        'superimpose':
+            {
+                'folder':       "input/pdb",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-super.pdb"
             },
         'settingsfile':
             {
-                'folder':       "settings",
+                'folder':       "",
                 "name":         '{}{}-{}-mn{}-mt{}'.format(protein, chain,protType,numModes,modeType),
                 "extension":    "-settings.json"
             }
@@ -130,7 +149,7 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
         },
         "reduce":{
-            "in": {"protein": "pdb" },
+            "in": {"protein": "allAtom" },
             "out": {"out": "reduce" },
             "chain": chain,
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
@@ -142,7 +161,7 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
         },
         "heavy":{
-            "in": {"protein": "pdb"},
+            "in": {"protein": "allAtom"},
             "out": {"out": "heavy"},
             "chain": chain,
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
@@ -157,15 +176,25 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "out":{'out':'ca'},
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
         },
-         "cut":{
+        "findtermini":{
             "in": {"pdb":"pdb"},
-            "out":{'out':'cut','cutlog':'cutlog'},
+            "out":{'out':'cutlog'},
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
-            "cutoff":5.5
+            "cutoff": terminiCutoff
         },
-         "secondary":{
+        "cut":{
+            "in": {"pdb":"pdb", 'cutlog':'cutlog'},
+            "out":{'out':'cut'},
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+        },
+        "secondary":{
             "in": {"pdb":"pdb"},
             "out":{'out':'secondary'},
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+        },
+        'superimpose':{
+            "in": {"pdb":"pdb", "refpdb": 'refpdb'},
+            "out":{'out':'superimpose'},
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose
         },
         'saveSettings': {
@@ -195,7 +224,8 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         overwrite = False,
         deviceIds = [0],
         interfaceCutoff = 5,
-        numCollectStructures = 50
+        numCollectStructures = 50,
+        scoringCutoff = 0
         ):
     pairSettings = {
     "id":"{}-pair".format(protein),
@@ -418,6 +448,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "attractBinary":attractBinary,
                 "verbose": verbose,
                 "attractParFile": attractParFile,
+                "cutoff":scoringCutoff
 
             },
             "sorting":
@@ -551,8 +582,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
             {
                 "in": 
                 {
-                    # "receptor": "receptor",
-                    # "ligand": "ligand",
+
                     'pdb': 'collect'
                 },
                 "out": 

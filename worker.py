@@ -41,6 +41,8 @@ class ConsumerThread(threading.Thread):
                 for configurator in self.configurators:
                     #try:
                         configurator.setConfig(item)
+                        #print("process ",configurator.setting, " ", item.files[item.settings[configurator.setting]['out']['out']]['name'], item.files[item.settings[configurator.setting]['out']['out']]['extension'])
+
                         configurator.run()
                     #except Exception as error:
                      #   print("Run in thread {} and configurator {} failed ".format(self.name,configurator.setting ))

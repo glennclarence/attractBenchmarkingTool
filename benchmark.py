@@ -3,23 +3,40 @@ from Settings import *
 from Configuration import Configuration
 from Pipeline import *
 
+from ConfiguratorBase import createLoggingFile
+
+
+import sys
+
+consoleOutputFil = "/home/glenn/consolOutput"
+#sys.stdout = open(consoleOutputFil, 'w')
+
+
 #create Modes, coarse grain Proteins and alphabet files
 singleConfiguration_01 = [
     {'conf':
-        [
+       [ 
+        FindTerminiConfigurator,
+        CutTerminiConfigurator,
+        AllAtomConfigurator,
         ReduceConfigurator,
+        HeavyConfigurator,
         ModeConfigurator,
         AlphabetConfigurator,
-        CutTerminiConfigurator,
-        SecondaryConfigurator
+        SecondaryConfigurator,
+        SaveSettingConfigurator
         ],
     'numThreads': 1}
 ]
 
 #for reference structure only apply coarse grain conversion
 singleConfigurationRef = [
-    {'conf':
-        ReduceConfigurator  ,
+    {'conf':[
+        CutTerminiConfigurator,
+        SuperimposeConfigurator,
+        AllAtomConfigurator,
+        ReduceConfigurator,
+        SaveSettingConfigurator ] ,
     'numThreads': 1}
 ]
 
@@ -57,67 +74,52 @@ runConfiguration = [
         RMSDConfigurator,
         FNATConfigurator,
         SaveSettingConfigurator,
-        CollectConfigurator,
-        InterfaceCondigurator
-        ],
+        CollectConfigurator
+                ],
     'numThreads': 1}
     ]
 
 
 
 
-protein="4G6J"
+proteins=[
+'1A2K',
+'2A5T',
+'2HQS',
+'4M76',
+'2SIC',
+'3D5S',
+'1US7',
+'1I2M',
+'1FLE',
+'1DFJ',
+'1OYV',
+'1K74'
+]
+
+#proteins =["4G6J"]
 #protein= "3MXW"
 protType = "unbound"
 protTypeRef = "refe"
-basePath = "/home/glenn/4G6J"
+basePath = "/home/glenn/work/benchmark5_testSet"
 #basePath = "/home/glenn/Documents/3MXW/3MXW"
+#basePath= "/home/glenn"
 numModesRec = 1
 numModesLig = 1
-bm = "test_mr{}_ml{}_s".format(numModesRec, numModesLig)
+bufferSize = 30
+bm = "test_mr{}_ml{}_s9".format(numModesRec, numModesLig)
 dry = False
 verbose = True
 overwrite = False
+num = len(proteins)
 
-print("\n create configrations")
-receptorConfig  = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath, dry=dry ,verbose = verbose))
-ligandConfig    = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath, dry=dry ,verbose = verbose))
-receptorRefConfig = Configuration(getDefaultSingleSetting(  protein=protein, chain="A", protType = protTypeRef, numModes = numModesRec,basePath = basePath, dry=dry ,verbose = verbose))
-ligandRefConfig = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protTypeRef, numModes = numModesLig,basePath = basePath, dry=dry ,verbose = verbose))
+createLoggingFile("/home/glenn/work/benchmark5_testSet/loggingFile.log")
 
-receptorConfig.files['alphabetPartner'] = ligandConfig.files['alphabet'] 
-ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
-
-pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
-numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath, dry=dry, verbose = verbose, overwrite = overwrite,
-attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" , attractBinPath= "/home/glenn/4G6J/attract/bin", attractParFile="/home/glenn/Documents/attract/attract.par",deviceIds = [0,1]))
-
-
-pairFiles = pairConfig.files
-pairFiles['receptor'] =     receptorConfig.files['reduce']
-pairFiles['modesRec'] =     receptorConfig.files['modes']
-pairFiles['gridRec'] =      receptorConfig.files['grid']
-pairFiles['alphabetRec'] =  receptorConfig.files['alphabetPartner']
-
-
-pairFiles['ligand'] =       ligandConfig.files['reduce']
-pairFiles['modesLig'] =     ligandConfig.files['modes']
-pairFiles['gridLig'] =      ligandConfig.files['grid']
-pairFiles['alphabetLig'] =  ligandConfig.files['alphabetPartner']
-
-pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
-pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
-
-
-#pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
-
-#ToDo: no error if buffersize is smaller than num
-bufferSize = 10
-print("\n create queues")
-
+print("\nset up buffer queues")
 inputRecQ = queue.Queue(bufferSize)
 inputLigQ = queue.Queue(bufferSize)
-
+inputRecQ_2 = queue.Queue(bufferSize)
+inputLigQ_2 = queue.Queue(bufferSize)
 inputRecRefQ = queue.Queue(bufferSize)
 inputLigRefQ = queue.Queue(bufferSize)
 outputRecRefQ = queue.Queue(bufferSize)
@@ -132,21 +134,67 @@ pairQ = queue.Queue(bufferSize)
 pairQOutConfig = queue.Queue(bufferSize)
 pairQOutRes = queue.Queue(bufferSize)
 
-num = 1
-for i in range(num):
-    inputRecQ.put((receptorConfig,i))
-    inputLigQ.put((ligandConfig,i))
-    inputRecRefQ.put((receptorRefConfig,i))
-    inputLigRefQ.put((ligandRefConfig,i))
-    pairQ.put((pairConfig,i))
+
+print("\n create configrations")
+for protein in proteins:
+    receptorConfig  = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+    ligandConfig    = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+    receptorRefConfig = Configuration(getDefaultSingleSetting(  protein=protein, chain="A", protType = protTypeRef, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+    ligandRefConfig = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protTypeRef, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+
+    receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
+    ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
+
+    receptorRefConfig.files['refpdb'] = receptorConfig.files['pdb'] 
+    ligandRefConfig.files['refpdb'] =   ligandConfig.files['pdb'] 
+
+    receptorRefConfig.files['cutlog'] = receptorConfig.files['cutlog'] 
+    ligandRefConfig.files['cutlog'] = ligandConfig.files['cutlog'] 
+
+    receptorConfig.files['alphabetPartner'] = ligandConfig.files['alphabet'] 
+    ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
+
+    pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
+    numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry, verbose = verbose, overwrite = overwrite,
+    attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" , attractBinPath= "/home/glenn/4G6J/attract/bin", attractParFile="/home/glenn/Documents/attract/attract.par",deviceIds = [0,1]))
+
+
+    pairFiles = pairConfig.files
+    pairFiles['receptor'] =     receptorConfig.files['reduce']
+    pairFiles['modesRec'] =     receptorConfig.files['modes']
+    pairFiles['gridRec'] =      receptorConfig.files['grid']
+    pairFiles['alphabetRec'] =  receptorConfig.files['alphabetPartner']
+
+    pairFiles['ligand'] =       ligandConfig.files['reduce']
+    pairFiles['modesLig'] =     ligandConfig.files['modes']
+    pairFiles['gridLig'] =      ligandConfig.files['grid']
+    pairFiles['alphabetLig'] =  ligandConfig.files['alphabetPartner']
+
+    pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
+    pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
+
+#pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
+
+#ToDo: no error if buffersize is smaller than num
+
+    inputRecQ.put((copy.deepcopy(receptorConfig),protein))
+    inputRecQ_2.put((copy.deepcopy(receptorConfig),protein))
+    inputLigQ.put((copy.deepcopy(ligandConfig),protein))
+    inputLigQ_2.put((copy.deepcopy(ligandConfig),protein))
+
+    inputRecRefQ.put((receptorRefConfig,protein))
+    inputLigRefQ.put((ligandRefConfig,protein))
+    pairQ.put((pairConfig,protein))
+
 
 #configure receptor and ligand in two steps
 pipelineRec         = createPipeline( inputRecQ, outputRecQ,bufferSize, singleConfiguration_01,  num)
 pipelineLig         = createPipeline( inputLigQ, outputLigQ,bufferSize, singleConfiguration_01, num)
 
+
 #configure grids and joined Modes
-pipelineRec2        = createPipeline( outputRecQ, outputRecQ2,bufferSize, singleConfiguration_02,  outputRecQ.qsize())
-pipelineLig2        = createPipeline( outputLigQ, outputLigQ2,bufferSize, singleConfiguration_02, outputLigQ.qsize())
+pipelineRec2        = createPipeline( inputRecQ_2, outputRecQ2,bufferSize, singleConfiguration_02, inputRecQ_2.qsize())
+pipelineLig2        = createPipeline( inputLigQ_2, outputLigQ2,bufferSize, singleConfiguration_02, inputLigQ_2.qsize())
 
 #configure referenceStructures
 pipelineRecRef      = createPipeline( inputRecRefQ, outputRecRefQ,bufferSize, singleConfigurationRef,  num)
@@ -157,17 +205,17 @@ pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConf
 #run docking, scoring and analysis
 pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
 
-print("\n DO REFERENCE CONFIGURATION")
-pipelineRecRef.start()
-pipelineLigRef.start()
-pipelineRecRef.join()
-pipelineLigRef.join()
-
 print("\n DO FIRST CONFIGURATION")
 pipelineRec.start()
 pipelineLig.start()
 pipelineRec.join()
 pipelineLig.join()
+
+print("\n DO REFERENCE CONFIGURATION")
+pipelineRecRef.start()
+pipelineLigRef.start()
+pipelineRecRef.join()
+pipelineLigRef.join()
 
 print("\nDO SECOND CONFIGURATION")
 pipelineRec2.start()

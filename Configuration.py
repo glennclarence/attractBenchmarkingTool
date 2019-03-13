@@ -2,6 +2,9 @@
 import json
 import os
 
+def fileIsEmpty(filename):
+    return os.stat(filename).st_size == 0
+
 def findAndChangeNested(inputDict, k, v):
     """Recursiveley find all entries in a JSON object with key 'k' and change them to value 'v' """
     if type(inputDict) is dict:
@@ -73,12 +76,12 @@ class Configuration:
         
         # if len(self.inputFiles) == 0:
         #     raise ValueError ("CONFIGURATION no inputfiles existing for config {} ".format(self.id))
-        outFiles = self.settings[setting]['out']
-        exists = True
-        for fileid in outFiles.values():
-            if not self.fileExists(fileid):
-                exists = False
-        return exists
+        outFile = self.settings[setting]['out']['out']
+        return self.fileExists(outFile) 
+        
+    def outputFileIsEmpty(self, setting):
+        outFile = self.settings[setting]['out']['out']
+        return fileIsEmpty(self.getFile(outFile))
 
     def getNotExistingInput(self,setting):
         """returns all the inputfiles that do not exist"""

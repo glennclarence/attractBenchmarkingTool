@@ -1,15 +1,17 @@
 from ConfiguratorBase import Configurator
 from Configuration import Configuration
 import os
-
+import logging
 import utils as utils
 import json
 
+#TODO superimposing 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
         print(command)
     if not configuration.getSetting(setting)["dryRun"]:
-        os.system(command)
+        status = os.system(command)
+        if status != 0: logging.warning("Failed to run " + command)
 
 #create reduced proteins
 def reduceFunction(config,setting):
@@ -19,7 +21,6 @@ def reduceFunction(config,setting):
     inPb = config.getInputFile(setting,'protein')
     chain = reduceSettings['chain']
     pythonBinary = config.getSetting('pythonBinary')
-
     bash_command = "{} {}/reduce.py {} {} --chain {} > /dev/null".format(pythonBinary,pathAttract, inPb, output, chain)
     runCommand(config,setting, bash_command)
 
@@ -42,11 +43,12 @@ def heavyFunction(config,setting):
     pathAttract = config.getSetting('attractToolPath')
     reduceSettings = config.getSetting(setting)
     output = config.getOutputFile(setting,'out')
-    inPb = config.getInputFile(setting,'protein')
+    protein = config.getInputFile(setting,'protein')
     chain = reduceSettings['chain']
     pythonBinary = config.getSetting('pythonBinary')
+    attractBinPath = config.getSetting('attractBinPath')
 
-    bash_command = "{} {}/reduce.py {} {} --chain {} > /dev/null".format(pythonBinary,pathAttract, inPb, output, chain)
+    bash_command = "{} {}/../allatom/aareduce.py {} {} --heavy --chain {} --readpatch  > /dev/null".format(pythonBinary,attractBinPath,protein,output,chain)
     runCommand(config,setting, bash_command)
 
 #create modes
@@ -68,7 +70,8 @@ def alphabetFunction(config,setting):
     
     bash_command = "awk '{}' {} | sort -nu > {}".format('{print substr($0,58,2)}', inPb, output)
     runCommand(config,setting, bash_command)
-  
+
+#TODO substitute with real path
 #create grid Files
 def gridFunction(config,setting):
     output = config.getOutputFile(setting,'out')
@@ -77,7 +80,7 @@ def gridFunction(config,setting):
    
     attractBinPath = config.getSetting('attractBinPath')
     param = config.getSetting("attractParFile")
-    bash_command = "{}/make-grid-omp {} {} 10.0 12.0 {}  --alphabet {} > /dev/null".format(attractBinPath,inPb,param, output, alphabet)#attractBinPath
+    bash_command = "/home/glenn/Downloads/attract_untouched/attract/bin/make-grid-omp {} {} 10.0 12.0 {}  --alphabet {} > /dev/null".format(inPb,param, output, alphabet)#attractBinPath
     runCommand(config, setting,bash_command)
        
 #create dof File
@@ -123,15 +126,6 @@ def CAFunction(config,setting):
     bash_command = "grep CA {}  > {}".format(protein, output)
     runCommand(config, setting,bash_command)
 
-#cut free termini
-def cutFunction(config,setting):
-    setting = "cut"
-    protein = config.getInputFile(setting,'protein')
-    output = config.getOutputFile(setting,'out')
-    
-    #bash_command = "grep CA {}  > {}".format(protein, output)
-    #runCommand(config, setting,bash_command)
-
 #docking
 def dockingFunction(config,setting):
     dof = config.getInputFile(setting,'dof')
@@ -148,7 +142,6 @@ def dockingFunction(config,setting):
     modesRec = config.getInputFile(setting,'modesRec')
     modesLig = config.getInputFile(setting,'modesLig')
     result = config.getOutputFile(setting,'out')
-
     devices = dockSettings["GPUdeviceIds"]
     d_string = ""
     if len(devices) > 0:
@@ -175,7 +168,10 @@ def scoringFunction(config,setting):
     mode_string = ""
     if scoringSettings["numModesRec"] > 0 or scoringSettings["numModesLig"] > 0 :
         mode_string = "--numModesRec {} --numModesLig {} --modes {} --evscale {}".format(scoringSettings["numModesRec"],scoringSettings["numModesLig"], modes, scoringSettings['evScale'])
-    bash_command = "{} {} {} {} {} --fix-receptor  --vmax 1000  --rcut 50 {} --score > {}".format(attractBinary,dof,scoringSettings["attractParFile"],receptor,ligand,mode_string,result)
+    rcut = scoringSettings["cutoff"]
+    rcutstr = "--rcut {}".format(rcut)  if rcut != None and rcut > 0  else  ""
+
+    bash_command = "{} {} {} {} {} --fix-receptor --score {} {}  > {}".format(attractBinary,dof,scoringSettings["attractParFile"],receptor,ligand,rcutstr,mode_string,result)
     runCommand(config, setting, bash_command)
 
 #Sorting
@@ -209,9 +205,9 @@ def RedundantFunction(config,setting):
 
 #Demode
 def demodeFunction(config,setting):
-    toolPath =          config.getSetting(          'attractToolPath')
-    inputDofFile =      config.getInputFile(setting,'inputDof')
-    output =            config.getOutputFile(setting, 'out')
+    toolPath =          config.getSetting(              'attractToolPath')
+    inputDofFile =      config.getInputFile(setting,    'inputDof')
+    output =            config.getOutputFile(setting,   'out')
     pythonBinary = config.getSetting('pythonBinary')
     
     bash_command = "{} {}/demode.py {} > {}".format(pythonBinary, toolPath, inputDofFile, output)
@@ -238,7 +234,7 @@ def IRMSDFunction(config,setting):
     lignadRef =     config.getInputFile(setting,'ligandRef')
     modes =         config.getInputFile(setting,'modes')
     output =        config.getOutputFile(setting,'out')
-    pythonBinary = config.getSetting('pythonBinary')
+    pythonBinary = config.getSetting(            'pythonBinary')
 
     mode_string = ""
     if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
@@ -257,7 +253,7 @@ def RMSDFunction(config,setting):
     ligandRef =         config.getInputFile(setting,'ligandRef')
     modes =             config.getInputFile(setting,'modes')
     output =            config.getOutputFile(setting,'out')
-    pythonBinary = config.getSetting('pythonBinary')
+    pythonBinary = config.getSetting(                'pythonBinary')
 
     mode_string = ""
     if rmsdSetting['numModesRec'] > 0  or rmsdSetting['numModesLig'] > 0 :
@@ -277,7 +273,7 @@ def FNATFunction(config,setting):
     ligandRef =     config.getInputFile(setting,'ligandRef')
     modes =         config.getInputFile(setting,'modes')
     output =        config.getOutputFile(setting,'out')
-    pythonBinary = config.getSetting('pythonBinary')
+    pythonBinary = config.getSetting(            'pythonBinary')
 
     mode_string = ""
     if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
@@ -312,22 +308,41 @@ def saveSettings(config, setting):
     if not config.getSetting(setting)["dryRun"]:
         config.save(configFilename)
 
+def FindTermini(config, setting):
+    cutSetting = config.getSetting(setting)
+    inputPdb = config.getInputFile(setting,                 "pdb")
+    looseTerminiLog = config.getOutputFile(setting,         "out")
+    cutoff =                        cutSetting[             'cutoff']
+
+    if config.getSetting(setting)['verbose']:
+        print("Find Termini from  " + inputPdb)
+    if not config.getSetting(setting)["dryRun"]:
+        # log = utils.findAndCutLooseTermini(inputPdb, cutPdb, cutoff)
+        log = utils.FindLooseTermini(inputPdb, cutoff=cutoff)
+        log['cutoff'] = cutoff
+        print(log)
+        utils.saveToJson(looseTerminiLog, log)
+
 def cutTermini(config, setting):
     cutSetting = config.getSetting(setting)
-    inputPdb = config.getInputFile(setting, "pdb")
-    cutPdb = config.getOutputFile(setting, "out")
-    cutlog = config.getOutputFile(setting, "cutlog")
+    inputPdb = config.getInputFile(setting,     "pdb")
+    cutlog = config.getInputFile(setting,       "cutlog")
+
+    cutPdb = config.getOutputFile(setting,      "out")
+
     if config.getSetting(setting)['verbose']:
         print("Cut Termini from  " + inputPdb + " and output to " + cutPdb)
     if not config.getSetting(setting)["dryRun"]:
-        log = utils.findAndCutLooseTermini(inputPdb, cutPdb, cutSetting['cutoff'])
-        log['cutoff'] = cutSetting['cutoff']
-        utils.saveToJson(cutlog, log)
+        log = utils.loadFromJson(cutlog)
+        residues = log['looseTerminiFront'] + log['looseTerminiBack']
+        pdblines = utils.readFileToList(inputPdb)
+        utils.cutTerminiAndWriteToPdb(residues,pdblines, cutPdb)
+
 
 #creates a secondary structure file from an input pdb file
 def CreateSecondary(config, setting):
-    inputPdb = config.getInputFile(setting, "pdb")
-    secdondaryFile = config.getOutputFile(setting, "out")
+    inputPdb = config.getInputFile(setting,         "pdb")
+    secdondaryFile = config.getOutputFile(setting,  "out")
 
     bash_command ="stride {} > {}".format(inputPdb, secdondaryFile)
     runCommand(config, setting, bash_command)
@@ -335,34 +350,32 @@ def CreateSecondary(config, setting):
 def GetInterface(config, setting):
     #receptor = config.getInputFile(setting, 'receptor')
     #ligand = config.getInputFile(setting,'ligand')
-    pdb = config.getInputFile(setting, 'pdb')
-    interfaceFile = config.getOutputFile(setting,'out')
+    pdb = config.getInputFile(setting,              'pdb')
+    interfaceFile = config.getOutputFile(setting,   'out')
     cutoff = config.getSetting(setting)['cutoff']
 
     if config.getSetting(setting)['verbose']:
         print("Get interface from pdb " + pdb )
     if not config.getSetting(setting)["dryRun"]:
-        
         structures = utils.parseBIOPdbToStructure(pdb)
         interfaces = []
         for struct in structures:
-            receptor = struct['A']       
-            ligand = struct['B']                
+            receptor =  struct['A']       
+            ligand =    struct['B']                
         
             contactResiduesRec, contactResiduesLig = utils.getInterfaceResidues(receptor,ligand,cutoff )
             recinterfaceResidues = utils.getResidueIds(contactResiduesRec)
             liginterfaceResidues = utils.getResidueIds(contactResiduesLig)
 
-            info = {
-                'model': struct.id,
-                
-                "recInterfaceResidues": recinterfaceResidues, 
-                "ligInterfaceResidues": liginterfaceResidues
-            }
-            interfaces.append(info)
-        
+            interfaces.append({'model': struct.id,"recInterfaceResidues": recinterfaceResidues,"ligInterfaceResidues": liginterfaceResidues})
+
         utils.saveToJson(interfaceFile, {'file': pdb, 'cutoff': cutoff,'interfaces': interfaces})
-    
+
+def SuperimposeStructures(config, setting):
+    inputPdb = config.getInputFile(setting, "pdb")
+    refPdb = config.getInputFile(setting, "refpdb")
+    superPdb = config.getOutputFile(setting, "out")
+    utils.superimposePdb(inputPdb, refPdb, superPdb)
 
 ########################specify configurators########################
 
@@ -393,9 +406,6 @@ JoinModesConfigurator   = Configurator('joinModes', joinModesFunction)
 
 #create a CA- only represenetation of a protein
 CAConfigurator          = Configurator('CA', CAFunction)
-
-#cut free termini
-CutConfigurator         = Configurator('cut', cutFunction)
 
 #dock receptor and ligand
 DockingConfigurator     = Configurator('docking', dockingFunction)
@@ -431,6 +441,9 @@ CollectConfigurator     = Configurator('collect', CollectFunction)
 SaveSettingConfigurator = Configurator('saveSettings', saveSettings )
 
 #cuts of all residues of a protein that is have no second next neighbor below a cutoff (~5.5Angstroem)
+FindTerminiConfigurator  = Configurator('findtermini', FindTermini)
+
+#cuts of all residues of a protein that is have no second next neighbor below a cutoff (~5.5Angstroem)
 CutTerminiConfigurator  = Configurator('cut', cutTermini)
 
 #creates a secondary structure file of the inputpdb according to stride
@@ -438,3 +451,6 @@ SecondaryConfigurator   = Configurator('secondary', CreateSecondary)
 
 #analyses the interface of two structures
 InterfaceCondigurator   = Configurator('interface', GetInterface)
+
+#superimposes a structe to a certain target and saves it to a pdb
+SuperimposeConfigurator = Configurator('superimpose', SuperimposeStructures)
