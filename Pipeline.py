@@ -2,6 +2,9 @@
 import queue
 from worker import *
 import copy
+from  Configurators import configuratorFunctions
+from ConfiguratorBase import Configurator
+
 class PipeLine:
     def __init__(self,threads, queues):
         self.threads = threads
@@ -31,6 +34,8 @@ def createPipeline( inputQueue, outputQueue,bufferSize, configurators, numItems)
     queues.append(outputQueue)
 
     threads = []
+
+
     for i, configurator in enumerate(configurators):
         try:
             configurator['numThreads']
@@ -45,9 +50,11 @@ def createPipeline( inputQueue, outputQueue,bufferSize, configurators, numItems)
                 configuratorList = [configurator['conf']]
             else:
                 configuratorList = configurator['conf']
+            ctrs =  []
             for con in configuratorList:
-                print("create cofigurator ", i, con.setting)
+                print("create cofigurator ", i, "setting", con['setting'], "with configurator function", con['configurator'])
+                ctrs.append(Configurator(con['setting'],configuratorFunctions[con['configurator']]))
 
-            c = ConsumerThread(configurators = copy.deepcopy(configuratorList), threshold = numItems,inputQueue=queues[i],resultQueue = queues[i+1],counter = counter,finishCounter =finishCounter, finishThreshold = finishThreshold,  name= "{}_{}".format(configuratorList[0].setting, k))
+            c = ConsumerThread(configurators = copy.deepcopy(ctrs), threshold = numItems,inputQueue=queues[i],resultQueue = queues[i+1],counter = counter,finishCounter =finishCounter, finishThreshold = finishThreshold,  name= "{}_{}".format(configuratorList[0]['configurator'], k))
             threads.append(c)
     return PipeLine(threads,queues)

@@ -4,6 +4,7 @@ import os
 import logging
 import utils as utils
 import json
+import numpy as np
 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
@@ -61,6 +62,84 @@ def modeFunction(config,setting):
 
     bash_command = "{} {}/modes.py {} {} > {} ".format(pythonBinary,toolPath, inPb, numModes, output)
     runCommand(config, setting,bash_command)
+
+#create modes evaluation 
+def modeEvalFunction(config,setting):
+    pdb_bound = config.getInputFile(setting,'protein_bound')
+    pdb_unbound = config.getInputFile(setting,'protein_unbound')
+    mode_file = config.getInputFile(setting,'mode_file')
+    
+    output = config.getOutputFile(setting,'out')
+
+    bound_list = utils.readFileToList(pdb_bound)
+    unbound_list = utils.readFileToList(pdb_unbound)
+
+    unbound_residues = utils.getResidueFromPDBlines(unbound_list)
+     
+    bound_CA = utils.getCAOnlyFromPDBLines(bound_list)
+    unbound_CA = utils.getCAOnlyFromPDBLines(unbound_list)
+
+    bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_CA)
+    unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_CA)
+
+    modes = utils.read_modes(mode_file)
+    cumulative_overlap = 0
+    eval_dict = {}
+    for modeIdx, mode in modes.items(): 
+        ca_modes = utils.getCAModes(unbound_residues,mode['evec'])
+        overlap = utils.getOverlap (unbound_CA_pos,bound_CA_pos, ca_modes)
+        cumulative_overlap += overlap**2
+        contributionCA = utils.getModeContribution(bound_CA_pos - unbound_CA_pos, ca_modes)
+        norm = utils.getModeNorm(mode['evec'])
+        contribution = contributionCA * norm
+        magnitude = utils.getModeMagnitude(ca_modes)
+        maximaIndices = utils.getIndexMaxima(magnitude)
+        maxima = magnitude[maximaIndices]
+        eval_dict[modeIdx] = { 'overlap':overlap, 'cum_overlap': np.sqrt(cumulative_overlap),'eigenvalue':mode['eval'],'norm':norm,'contribution':contribution,'contribution_ca':contributionCA,'maxima_indices':maximaIndices.tolist(), 'maxima_values':maxima.tolist() }
+    
+    
+    utils.saveToJson(output, {'bound':pdb_bound, 'unbound':pdb_unbound, 'mode_file':mode_file, 'modes': eval_dict})
+
+
+def createBoundModesFunction(config,setting):
+    pdb_bound = config.getInputFile(setting,'protein_bound')
+    pdb_unbound = config.getInputFile(setting,'protein_unbound')
+
+    output = config.getOutputFile(setting,'out')
+
+    bound_list = utils.readFileToList(pdb_bound)
+    unbound_list = utils.readFileToList(pdb_unbound)
+
+    bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_list)
+    unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_list)
+
+    pos_delta = bound_CA_pos - unbound_CA_pos
+    norm = utils.getModeNorm(pos_delta)
+
+    utils.writeModeFile(output, pos_delta.T[0],pos_delta.T[1],pos_delta.T[2], 1.0/norm**2)
+
+
+def manipulateModesFunction(config,setting):
+    secondary_file = config.getInputFile(setting,'sec')
+    pdb = config.getInputFile(setting,'protein')
+    mode_file = config.getInputFile(setting,'modes')
+
+    output = config.getOutputFile(setting,'out')
+
+    pdb_list = utils.readFileToList(pdb)    
+    resIndices = utils.getResidueIndicesFromPDBLines(pdb_list)   
+
+    modes = utils.read_modes(mode_file)
+    sec = readSecondaryStructure(secondary_file)
+    settings = config.getSetting(setting)
+
+    for mode in d_modes.values():
+        size = len(mode['evec'])
+        for i in range(size):
+            if sec[resIndices[i]] in settings['manipulate']:
+                mode['evec'][i] = np.zeros(3)
+
+    utils.writeModeFileFromDict(modes,output)
 
 #create alphatbetFiles
 def alphabetFunction(config,setting):
@@ -251,8 +330,8 @@ def IRMSDFunction(config,setting):
 
     mode_string = ""
     #TODO remoce
-    # if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
-    #     mode_string = "--modes {}".format(modes)
+    if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
+        mode_string = "--modes {}".format(modes)
 
     bash_command = "{} {}/irmsd.py {} {} {} {} {}  {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, lignadRef,mode_string,output)
     runCommand(config, setting, bash_command)
@@ -292,8 +371,8 @@ def FNATFunction(config,setting):
     mode_string = ""
     #TODO remoce
 
-    # if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
-    #     mode_string = " --modes {} ".format(modes)
+    if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
+        mode_string = " --modes {} ".format(modes)
 
     bash_command = "{} {}/fnat.py {} 5 {} {} {} {} {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, ligandRef,mode_string,output)
     runCommand(config, setting, bash_command)
@@ -490,7 +569,7 @@ SuperimposeConfigurator = Configurator('superimpose', SuperimposeStructures)
 
 
 
-configuratorFnctions = {
+configuratorFunctions = {
     'reduce':       reduceFunction,
     'allAtom':      allAtomFunction,
     'heavy':        heavyFunction,
@@ -502,6 +581,7 @@ configuratorFnctions = {
     'CA':           CAFunction,
     'docking':      dockingFunction,
     'scoring':      scoringFunction,
+    'fill_energy':  FillEnergyFunction,
     'sorting':      SortingFunction,
     'deredundant':  RedundantFunction,
     'demode':       demodeFunction,
@@ -515,4 +595,7 @@ configuratorFnctions = {
     'cut':          cutTermini,
     'secondary':    CreateSecondary,
     'interface':    GetInterface,
-    'superimpose':  SuperimposeStructures}
+    'superimpose':  SuperimposeStructures,
+    'mode_evaluation':modeEvalFunction,
+    'bound_mode': createBoundModesFunction
+    }

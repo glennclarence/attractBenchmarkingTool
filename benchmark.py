@@ -4,7 +4,7 @@ from Configuration import Configuration
 from Pipeline import *
 
 from ConfiguratorBase import createLoggingFile
-
+import math
 from datetime import datetime
 import sys
 
@@ -14,9 +14,7 @@ consoleOutputFil = "/home/glenn/consolOutput"
 
 #create Modes, coarse grain Proteins and alphabet files
 singleConfiguration_01 = [
-    
-    {'conf':
-       [ 
+    {'conf': [ 
         FindTerminiConfigurator,
         CutTerminiConfigurator,
         AllAtomConfigurator,
@@ -30,6 +28,23 @@ singleConfiguration_01 = [
     'numThreads': 1}
 ]
 
+singleConfiguration_01_new = [
+    {
+    'conf': [ 
+        {'setting': 'findtermini',  'configurator': 'findtermini'},
+        {'setting': 'cut',          'configurator': 'cut'},
+        {'setting': 'allAtom',      'configurator': 'allAtom'},
+        {'setting': 'reduce',       'configurator': 'reduce'},
+        {'setting': 'heavy',        'configurator': 'heavy'},
+        {'setting': 'modes',        'configurator': 'modes'},
+        {'setting': 'modes_heavy',  'configurator': 'modes'},
+        {'setting': 'alphabet',     'configurator': 'alphabet'},
+        {'setting': 'secondary',    'configurator': 'secondary'},
+        {'setting': 'saveSettings', 'configurator': 'saveSettings'}
+        ],
+    'numThreads': 1}
+]
+
 #for reference structure only apply coarse grain conversion
 singleConfigurationRef = [
     {'conf':[
@@ -37,26 +52,47 @@ singleConfigurationRef = [
         SuperimposeConfigurator,
         AllAtomConfigurator,
         ReduceConfigurator,
-        
+        HeavyConfigurator,
         SaveSettingConfigurator ] ,
+    'numThreads': 1}
+]
+
+singleConfigurationRef_new = [
+    {'conf':[
+        { 'setting': 'cut' ,        'configurator': 'cut'},
+        { 'setting': 'superimpose' ,'configurator': 'superimpose'},
+        { 'setting': 'allAtom' ,    'configurator': 'allAtom'},
+        { 'setting': 'reduce' ,     'configurator': 'reduce'},
+        { 'setting': 'heavy' ,     'configurator':  'heavy'},
+        { 'setting': 'saveSettings','configurator': 'saveSettings'} 
+        ] ,
     'numThreads': 1}
 ]
 
 #create Grids. this has to be a seperate step since the alphabet file of the partner is needed
 singleConfiguration_02 = [
     {'conf':
-        GridConfigurator, 
+        { 'setting': 'grid',        'configurator':'grid'},
+    'numThreads': 1}
+]
+
+modeEvaluation = [
+    {'conf':
+        [{ 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
+        { 'setting': 'bound_mode',        'configurator':'bound_mode'}],
     'numThreads': 1}
 ]
 
 #All files are created which needed receptor and ligand
 pairConfiguration = [
     {'conf':
-        [DofConfigurator,
-        JoinModesConfigurator], 
+        [
+        { 'setting': 'dof',         'configurator': 'dof'},
+        { 'setting': 'joinModes',   'configurator': 'joinModes'} ,
+        { 'setting': 'joinModes_heavy',   'configurator': 'joinModes'} 
+        ], 
     'numThreads':1
     }
-
 ]
 
 #perform docking and scoring as well analysis
@@ -78,11 +114,34 @@ runConfiguration = [
         FNATConfigurator,
         SaveSettingConfigurator,
         CollectConfigurator
-                ],
+        ],
     'numThreads': 1}
     ]
 
-
+runConfiguration_new = [
+    {'conf':
+        { 'setting':'docking',     'configurator':'docking'},
+    'numThreads': 1},
+    {'conf':
+         { 'setting':'scoring','configurator':'scoring'},
+    'numThreads': 1},
+    {'conf':[
+        { 'setting': 'fill_energy',     'configurator': 'fill_energy'  },
+        { 'setting': 'sorting',         'configurator': 'sorting'      },
+        { 'setting': 'deredundant',     'configurator': 'deredundant'  },
+        { 'setting': 'top',             'configurator': 'top'          },
+        { 'setting': 'demode',          'configurator': 'demode'       },
+        { 'setting': 'irmsd',           'configurator': 'irmsd'        },
+        #{ 'setting': 'irmsd_nomodes',   'configurator': 'irmsd'        },
+        { 'setting': 'rmsd',            'configurator': 'rmsd'         },
+        #{ 'setting': 'rmsd_nomodes',    'configurator': 'rmsd'         },
+        { 'setting': 'fnat',            'configurator': 'fnat'         },
+        #{ 'setting': 'fnat_nomodes',    'configurator': 'fnat'         },
+        { 'setting': 'saveSettings',    'configurator': 'saveSettings' },
+        { 'setting': 'collect'  ,       'configurator': 'collect'  ,   }
+                ],
+    'numThreads': 1}
+    ]
 
 
 proteins=[
@@ -110,12 +169,16 @@ basePath = "/home/glenn/Documents/3MXW"
 basePath= "/home/glenn"
 numModesRec = 1
 numModesLig = 1
+scale = 1.5
 bufferSize = 30
-bm = "test_mr{}_ml{}_s_all".format(numModesRec, numModesLig)
+frac, whole = math.modf(scale)
+
+bm = "test_mr{}_ml{}_s{}p{}_all_new".format(numModesRec, numModesLig, whole,'{:6f}'.format(frac)[2:])
 dry = False
 verbose = True
 overwrite = False
 num = len(proteins)
+
 
 createLoggingFile(basePath+"/loggingFile{}.log".format(str(datetime.now())))
 
@@ -134,6 +197,13 @@ outputLigQ = queue.Queue(bufferSize)
 
 outputRecQ2 = queue.Queue(bufferSize)
 outputLigQ2 = queue.Queue(bufferSize)
+
+
+inputRecModeEvalQ = queue.Queue(bufferSize)
+inputLigModeEvalQ = queue.Queue(bufferSize)
+outputRecModeEvalQ = queue.Queue(bufferSize)
+outputLigModeEvalQ = queue.Queue(bufferSize)
+
 pairQ = queue.Queue(bufferSize)
 pairQOutConfig = queue.Queue(bufferSize)
 pairQOutRes = queue.Queue(bufferSize)
@@ -145,6 +215,8 @@ for protein in proteins:
     ligandConfig    = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
     receptorRefConfig = Configuration(getDefaultSingleSetting(  protein=protein, chain="A", protType = protTypeRef, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
     ligandRefConfig = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protTypeRef, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+
+
 
     receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
     ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
@@ -160,27 +232,39 @@ for protein in proteins:
 
     pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
     numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry, verbose = verbose, overwrite = overwrite,
-    attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" , attractBinPath= "/home/glenn/4G6J/attract/bin", attractParFile="/home/glenn/Documents/attract/attract.par",deviceIds = [0,1]))
+    attractBinary= "/home/glenn/Downloads/attract_fromHP/bin/attract" , attractBinPath= "/home/glenn/4G6J/attract/bin", attractParFile="/home/glenn/Documents/attract/attract.par",deviceIds = [0,1], evScale=scale))
 
 
     pairFiles = pairConfig.files
-    pairFiles['receptor'] =     receptorConfig.files['reduce']
-    pairFiles['receptor-heavy'] =     receptorConfig.files['heavy']
+    pairFiles['receptor'] =             receptorConfig.files['reduce']
+    pairFiles['receptor_heavy'] =       receptorConfig.files['heavy']
 
     pairFiles['modesRec'] =     receptorConfig.files['modes']
+    pairFiles['modesRec_heavy'] =     receptorConfig.files['modes_heavy']
+
     pairFiles['gridRec'] =      receptorConfig.files['grid']
     pairFiles['alphabetRec'] =  receptorConfig.files['alphabetPartner']
 
     pairFiles['ligand'] =       ligandConfig.files['reduce']
-    pairFiles['ligand-heavy'] = ligandConfig.files['heavy']
+    pairFiles['ligand_heavy'] = ligandConfig.files['heavy']
     pairFiles['modesLig'] =     ligandConfig.files['modes']
+    pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_heavy']
     pairFiles['gridLig'] =      ligandConfig.files['grid']
     pairFiles['alphabetLig'] =  ligandConfig.files['alphabetPartner']
 
     pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
     pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
-    pairFiles['receptorRef-heavy'] =  receptorRefConfig.files['heavy']
-    pairFiles['ligandRef-heavy'] =    ligandRefConfig.files['heavy']
+    pairFiles['receptorRef_heavy'] =  receptorRefConfig.files['heavy']
+    pairFiles['ligandRef_heavy'] =    ligandRefConfig.files['heavy']
+
+
+    ligand_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+    receptor_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+    ligand_modeEval.files['partner_bound'] = ligandRefConfig.files['reduce']
+    receptor_modeEval.files['partner_bound'] = receptorRefConfig.files['reduce']
+
+    inputRecModeEvalQ.put((receptor_modeEval,protein))
+    inputLigModeEvalQ.put((ligand_modeEval,protein))
 
 #pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
 
@@ -197,8 +281,8 @@ for protein in proteins:
 
 
 #configure receptor and ligand in two steps
-pipelineRec         = createPipeline( inputRecQ, outputRecQ,bufferSize, singleConfiguration_01,  num)
-pipelineLig         = createPipeline( inputLigQ, outputLigQ,bufferSize, singleConfiguration_01, num)
+pipelineRec         = createPipeline( inputRecQ, outputRecQ,bufferSize, singleConfiguration_01_new,  num)
+pipelineLig         = createPipeline( inputLigQ, outputLigQ,bufferSize, singleConfiguration_01_new, num)
 
 
 #configure grids and joined Modes
@@ -206,13 +290,17 @@ pipelineRec2        = createPipeline( inputRecQ_2, outputRecQ2,bufferSize, singl
 pipelineLig2        = createPipeline( inputLigQ_2, outputLigQ2,bufferSize, singleConfiguration_02, inputLigQ_2.qsize())
 
 #configure referenceStructures
-pipelineRecRef      = createPipeline( inputRecRefQ, outputRecRefQ,bufferSize, singleConfigurationRef,  num)
-pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, singleConfigurationRef,  num)
+pipelineRecRef      = createPipeline( inputRecRefQ, outputRecRefQ,bufferSize, singleConfigurationRef_new,  num)
+pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, singleConfigurationRef_new,  num)
 
 #runpairconfiguration
 pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConfiguration,  num)
 #run docking, scoring and analysis
-pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
+pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration_new,  num)
+
+
+pipelineModeEvalLig= createPipeline( inputLigModeEvalQ, outputLigModeEvalQ,bufferSize, modeEvaluation,  num)
+pipelineModeEvalRec= createPipeline( inputRecModeEvalQ, outputRecModeEvalQ,bufferSize, modeEvaluation,  num)
 
 print("\n DO FIRST CONFIGURATION")
 pipelineRec.start()
@@ -240,9 +328,11 @@ print("\n DO RUN")
 pipelinePairRun.start()
 pipelinePairRun.join()
 
+pipelineModeEvalLig.start()
+pipelineModeEvalLig.join()
 
-
-
+pipelineModeEvalRec.start()
+pipelineModeEvalRec.join()
 # print("\nRUN RECEPTOR CONFIG")
 # for configurator in singleConfiguration_01:
 #     configurator.setConfig(receptorConfig)
