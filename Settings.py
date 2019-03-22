@@ -225,7 +225,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         deviceIds = [0],
         interfaceCutoff = 5,
         numCollectStructures = 50,
-        scoringCutoff = 0
+        scoringCutoff = 50
         ):
     pairSettings = {
     "id":"{}-pair".format(protein),
@@ -320,6 +320,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'folder':       "{}/result".format(benchmarkName),
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-scoring.dat"
+            },
+        'filled':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-filled.dat"
             },
         'sortedResult':
             {
@@ -431,7 +437,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
             "scoring":{
                 "in": 
                 {
-                    "dof":"dof",
+                    "dof":"dockingResult",
                     "receptor": "receptor",
                     "ligand": "ligand",
                     "gridRec": "gridRec",
@@ -451,12 +457,25 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "cutoff":scoringCutoff
 
             },
-            "sorting":
+            "fill_energy":
             {
                  "in": 
                 {
                     "dockingResult":"dockingResult",
                     "scoringResult":"scoringResult"
+                },
+                "out": 
+                {
+                    "out": "filled"
+                },
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+
+            },
+            "sorting":
+            {
+                 "in": 
+                {
+                    "input_dof":"filled",
                 },
                 "out": 
                 {
@@ -518,10 +537,10 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                  "in": 
                 {
                     "inputDof":"deRedundantResult",
-                    "receptor":"receptor",
-                    "receptorRef":"receptorRef",
-                    "ligand":"ligand",
-                    "ligandRef":"ligandRef",
+                    "receptor":"receptor-heavy",
+                    "receptorRef":"receptorRef-heavy",
+                    "ligand":"ligand-heavy",
+                    "ligandRef":"ligandRef-heavy",
                     "modes":"joinedModes",
                 },
                 "out": 
@@ -536,10 +555,10 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                   "in": 
                 {
                     "inputDof":"deRedundantResult",
-                    "receptor":"receptor",
-                    "receptorRef":"receptorRef",
-                    "ligand":"ligand",
-                    "ligandRef":"ligandRef",
+                    "receptor":"receptor-heavy",
+                    "receptorRef":"receptorRef-heavy",
+                    "ligand":"ligand-heavy",
+                    "ligandRef":"ligandRef-heavy",
                     "modes":"joinedModes"
                 },
                 "out": 

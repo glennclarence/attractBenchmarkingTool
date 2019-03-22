@@ -5,7 +5,6 @@ import logging
 import utils as utils
 import json
 
-#TODO superimposing 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
         print(command)
@@ -176,13 +175,27 @@ def scoringFunction(config,setting):
 
 #Sorting
 def SortingFunction(config,setting):
-    toolPath = config.getSetting(           'attractToolPath')
-    docking = config.getInputFile(setting,  'dockingResult')
-    scoring = config.getInputFile(setting,  'scoringResult')
-    sortedOutput = config.getOutputFile(setting, 'out')
-    pythonBinary = config.getSetting('pythonBinary')
+    toolPath = config.getSetting(                   'attractToolPath')
+    pythonBinary = config.getSetting(               'pythonBinary')
+
+    input_dof = config.getInputFile(setting,        'input_dof')
+    sorted_output = config.getOutputFile(setting,   'out')
     
-    bash_command = "{} {}/fill-energies.py {} {} > {}".format(pythonBinary,toolPath, docking,scoring, sortedOutput)
+    bash_command = "{} {}/sort.py {} > {}".format(pythonBinary, toolPath, input_dof, sorted_output)
+    runCommand(config, setting, bash_command)
+
+
+#FillEnergies
+def FillEnergyFunction(config,setting):
+    toolPath = config.getSetting(                   'attractToolPath')
+    pythonBinary = config.getSetting(               'pythonBinary')
+
+
+    docking = config.getInputFile(setting,          'dockingResult')
+    scoring = config.getInputFile(setting,          'scoringResult')
+    filled_output = config.getOutputFile(setting,   'out')
+    
+    bash_command = "{} {}/fill-energies.py {} {} > {}".format(pythonBinary,toolPath, docking,scoring, filled_output)
     runCommand(config, setting, bash_command)
 
 #Redundant
@@ -237,8 +250,9 @@ def IRMSDFunction(config,setting):
     pythonBinary = config.getSetting(            'pythonBinary')
 
     mode_string = ""
-    if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
-        mode_string = "--modes {}".format(modes)
+    #TODO remoce
+    # if irmsdSetting['numModesRec'] > 0 or irmsdSetting['numModesLig'] > 0:
+    #     mode_string = "--modes {}".format(modes)
 
     bash_command = "{} {}/irmsd.py {} {} {} {} {}  {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, lignadRef,mode_string,output)
     runCommand(config, setting, bash_command)
@@ -276,8 +290,10 @@ def FNATFunction(config,setting):
     pythonBinary = config.getSetting(            'pythonBinary')
 
     mode_string = ""
-    if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
-        mode_string = " --modes {} ".format(modes)
+    #TODO remoce
+
+    # if fnatSetting['numModesRec'] > 0  or fnatSetting['numModesLig'] > 0 :
+    #     mode_string = " --modes {} ".format(modes)
 
     bash_command = "{} {}/fnat.py {} 5 {} {} {} {} {} > {}".format(pythonBinary,toolPath, inputDofFile , receptor, receptorRef,ligand, ligandRef,mode_string,output)
     runCommand(config, setting, bash_command)
@@ -320,7 +336,6 @@ def FindTermini(config, setting):
         # log = utils.findAndCutLooseTermini(inputPdb, cutPdb, cutoff)
         log = utils.FindLooseTermini(inputPdb, cutoff=cutoff)
         log['cutoff'] = cutoff
-        print(log)
         utils.saveToJson(looseTerminiLog, log)
 
 def cutTermini(config, setting):
@@ -375,7 +390,11 @@ def SuperimposeStructures(config, setting):
     inputPdb = config.getInputFile(setting, "pdb")
     refPdb = config.getInputFile(setting, "refpdb")
     superPdb = config.getOutputFile(setting, "out")
-    utils.superimposePdb(inputPdb, refPdb, superPdb)
+    
+    if config.getSetting(setting)['verbose']:
+        print("Superimpose pdb " + inputPdb )
+    if not config.getSetting(setting)["dryRun"]:
+        utils.superimposePdb(inputPdb, refPdb, superPdb)
 
 ########################specify configurators########################
 
@@ -412,6 +431,9 @@ DockingConfigurator     = Configurator('docking', dockingFunction)
 
 #score results
 ScoringConfigurator     = Configurator('scoring', scoringFunction)
+
+#create a file with filled in energies using the docking and scoring results
+FillEnergyConfigurator     = Configurator('fill_energy', FillEnergyFunction)
 
 #sort results by energy
 SortingConfigurator     = Configurator('sorting', SortingFunction)
@@ -454,3 +476,43 @@ InterfaceCondigurator   = Configurator('interface', GetInterface)
 
 #superimposes a structe to a certain target and saves it to a pdb
 SuperimposeConfigurator = Configurator('superimpose', SuperimposeStructures)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+configuratorFnctions = {
+    'reduce':       reduceFunction,
+    'allAtom':      allAtomFunction,
+    'heavy':        heavyFunction,
+    'alphabet':     alphabetFunction,
+    'modes':        modeFunction,
+    'grid':         gridFunction,
+    'dof':          dofFunction,
+    'joinModes':    joinModesFunction,
+    'CA':           CAFunction,
+    'docking':      dockingFunction,
+    'scoring':      scoringFunction,
+    'sorting':      SortingFunction,
+    'deredundant':  RedundantFunction,
+    'demode':       demodeFunction,
+    'top':          topFunction,
+    'rmsd':         RMSDFunction,
+    'irmsd':        IRMSDFunction,
+    'fnat':         FNATFunction,
+    'collect':      CollectFunction,
+    'saveSettings': saveSettings ,
+    'findtermini':  FindTermini,
+    'cut':          cutTermini,
+    'secondary':    CreateSecondary,
+    'interface':    GetInterface,
+    'superimpose':  SuperimposeStructures}

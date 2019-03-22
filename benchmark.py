@@ -5,7 +5,7 @@ from Pipeline import *
 
 from ConfiguratorBase import createLoggingFile
 
-
+from datetime import datetime
 import sys
 
 consoleOutputFil = "/home/glenn/consolOutput"
@@ -14,6 +14,7 @@ consoleOutputFil = "/home/glenn/consolOutput"
 
 #create Modes, coarse grain Proteins and alphabet files
 singleConfiguration_01 = [
+    
     {'conf':
        [ 
         FindTerminiConfigurator,
@@ -36,6 +37,7 @@ singleConfigurationRef = [
         SuperimposeConfigurator,
         AllAtomConfigurator,
         ReduceConfigurator,
+        
         SaveSettingConfigurator ] ,
     'numThreads': 1}
 ]
@@ -66,10 +68,11 @@ runConfiguration = [
         ScoringConfigurator,
     'numThreads': 1},
     {'conf':[
+        FillEnergyConfigurator,
         SortingConfigurator,
         DeRedundantConfigurator,
-        DemodeConfigurator,
         TopConfigurator,
+        DemodeConfigurator,
         IRMSDConfigurator,
         RMSDConfigurator,
         FNATConfigurator,
@@ -97,23 +100,24 @@ proteins=[
 '1K74'
 ]
 
-#proteins =["4G6J"]
+proteins =["4G6J"]
 #protein= "3MXW"
+#proteins = ["3MXW"]
 protType = "unbound"
 protTypeRef = "refe"
 basePath = "/home/glenn/work/benchmark5_testSet"
-#basePath = "/home/glenn/Documents/3MXW/3MXW"
-#basePath= "/home/glenn"
+basePath = "/home/glenn/Documents/3MXW"
+basePath= "/home/glenn"
 numModesRec = 1
 numModesLig = 1
 bufferSize = 30
-bm = "test_mr{}_ml{}_s9".format(numModesRec, numModesLig)
+bm = "test_mr{}_ml{}_s_all".format(numModesRec, numModesLig)
 dry = False
 verbose = True
 overwrite = False
 num = len(proteins)
 
-createLoggingFile("/home/glenn/work/benchmark5_testSet/loggingFile.log")
+createLoggingFile(basePath+"/loggingFile{}.log".format(str(datetime.now())))
 
 print("\nset up buffer queues")
 inputRecQ = queue.Queue(bufferSize)
@@ -161,17 +165,22 @@ for protein in proteins:
 
     pairFiles = pairConfig.files
     pairFiles['receptor'] =     receptorConfig.files['reduce']
+    pairFiles['receptor-heavy'] =     receptorConfig.files['heavy']
+
     pairFiles['modesRec'] =     receptorConfig.files['modes']
     pairFiles['gridRec'] =      receptorConfig.files['grid']
     pairFiles['alphabetRec'] =  receptorConfig.files['alphabetPartner']
 
     pairFiles['ligand'] =       ligandConfig.files['reduce']
+    pairFiles['ligand-heavy'] = ligandConfig.files['heavy']
     pairFiles['modesLig'] =     ligandConfig.files['modes']
     pairFiles['gridLig'] =      ligandConfig.files['grid']
     pairFiles['alphabetLig'] =  ligandConfig.files['alphabetPartner']
 
     pairFiles['receptorRef'] =  receptorRefConfig.files['reduce']
     pairFiles['ligandRef'] =    ligandRefConfig.files['reduce']
+    pairFiles['receptorRef-heavy'] =  receptorRefConfig.files['heavy']
+    pairFiles['ligandRef-heavy'] =    ligandRefConfig.files['heavy']
 
 #pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
 

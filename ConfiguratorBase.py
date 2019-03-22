@@ -41,7 +41,7 @@ class Configurator:
                     try:
                         self.configFunc(self.config,self.setting)
                     except Exception as error:
-                        errorstr = "An error occured when running CONFIGURATOR   {:13} EROR".format(self.setting) + error
+                        errorstr = "An error occured when running CONFIGURATOR   {:13} ERROR".format(self.setting) + error
                         logging.warning(errorstr)
                 else:
                     logstring = "Output file for CONFIGURATOR   {:13s} exists already FILE {}".format(self.setting, self.config.getOutputFile(self.setting, 'out'))
