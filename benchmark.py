@@ -144,20 +144,7 @@ runConfiguration_new = [
     ]
 
 
-proteins=[
-'1A2K',
-'2A5T',
-'2HQS',
-'4M76',
-'2SIC',
-'3D5S',
-'1US7',
-'1I2M',
-'1FLE',
-'1DFJ',
-'1OYV',
-'1K74'
-]
+
 
 proteins =["4G6J"]
 #protein= "3MXW"
@@ -167,13 +154,23 @@ protTypeRef = "refe"
 basePath = "/home/glenn/work/benchmark5_testSet"
 basePath = "/home/glenn/Documents/3MXW"
 basePath= "/home/glenn"
+basePath = "/home/glenn/work/benchmark5_attract_new"
+
+protlist_file = basePath + "/protlist"
+
+proteins =[]
+with open(protlist_file ,'r') as f:
+    lines = f.readlines()
+    for line in lines:
+        proteins.append(line.split()[0])
+
 numModesRec = 1
 numModesLig = 1
-scale = 1.5
+scale = 1.0
 bufferSize = 30
 frac, whole = math.modf(scale)
 
-bm = "test_mr{}_ml{}_s{}p{}_all_new".format(numModesRec, numModesLig, whole,'{:6f}'.format(frac)[2:])
+bm = "test_mr{}_ml{}_s{}p{}_new".format(numModesRec, numModesLig, (int)whole,'{:6f}'.format(frac)[2:])
 dry = False
 verbose = True
 overwrite = False
