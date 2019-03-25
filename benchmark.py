@@ -8,26 +8,9 @@ import math
 from datetime import datetime
 import sys
 
-consoleOutputFil = "/home/glenn/consolOutput"
-#sys.stdout = open(consoleOutputFil, 'w')
 
 
 #create Modes, coarse grain Proteins and alphabet files
-singleConfiguration_01 = [
-    {'conf': [ 
-        FindTerminiConfigurator,
-        CutTerminiConfigurator,
-        AllAtomConfigurator,
-        ReduceConfigurator,
-        HeavyConfigurator,
-        ModeConfigurator,
-        AlphabetConfigurator,
-        SecondaryConfigurator,
-        SaveSettingConfigurator
-        ],
-    'numThreads': 1}
-]
-
 singleConfiguration_01_new = [
     {
     'conf': [ 
@@ -40,23 +23,12 @@ singleConfiguration_01_new = [
         {'setting': 'modes_heavy',  'configurator': 'modes'},
         {'setting': 'alphabet',     'configurator': 'alphabet'},
         {'setting': 'secondary',    'configurator': 'secondary'},
+        {'setting': 'mode_manipulate','configurator': 'mode_manipulate'},
         {'setting': 'saveSettings', 'configurator': 'saveSettings'}
         ],
     'numThreads': 1}
 ]
-
 #for reference structure only apply coarse grain conversion
-singleConfigurationRef = [
-    {'conf':[
-        CutTerminiConfigurator,
-        SuperimposeConfigurator,
-        AllAtomConfigurator,
-        ReduceConfigurator,
-        HeavyConfigurator,
-        SaveSettingConfigurator ] ,
-    'numThreads': 1}
-]
-
 singleConfigurationRef_new = [
     {'conf':[
         { 'setting': 'cut' ,        'configurator': 'cut'},
@@ -78,8 +50,10 @@ singleConfiguration_02 = [
 
 modeEvaluation = [
     {'conf':
-        [{ 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
-        { 'setting': 'bound_mode',        'configurator':'bound_mode'}],
+        [
+        #{ 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
+        { 'setting': 'bound_mode',        'configurator':'bound_mode'}
+        ],
     'numThreads': 1}
 ]
 
@@ -87,6 +61,7 @@ modeEvaluation = [
 pairConfiguration = [
     {'conf':
         [
+       #{ 'setting' : 'dof_test',    'configurator': 'dof_test'},
         { 'setting': 'dof',         'configurator': 'dof'},
         { 'setting': 'joinModes',   'configurator': 'joinModes'} ,
         { 'setting': 'joinModes_heavy',   'configurator': 'joinModes'} 
@@ -96,28 +71,6 @@ pairConfiguration = [
 ]
 
 #perform docking and scoring as well analysis
-runConfiguration = [
-    {'conf':
-        DockingConfigurator,
-    'numThreads': 1},
-    {'conf':
-        ScoringConfigurator,
-    'numThreads': 1},
-    {'conf':[
-        FillEnergyConfigurator,
-        SortingConfigurator,
-        DeRedundantConfigurator,
-        TopConfigurator,
-        DemodeConfigurator,
-        IRMSDConfigurator,
-        RMSDConfigurator,
-        FNATConfigurator,
-        SaveSettingConfigurator,
-        CollectConfigurator
-        ],
-    'numThreads': 1}
-    ]
-
 runConfiguration_new = [
     {'conf':
         { 'setting':'docking',     'configurator':'docking'},
@@ -132,28 +85,25 @@ runConfiguration_new = [
         { 'setting': 'top',             'configurator': 'top'          },
         { 'setting': 'demode',          'configurator': 'demode'       },
         { 'setting': 'irmsd',           'configurator': 'irmsd'        },
-        #{ 'setting': 'irmsd_nomodes',   'configurator': 'irmsd'        },
-        { 'setting': 'rmsd',            'configurator': 'rmsd'         },
-        #{ 'setting': 'rmsd_nomodes',    'configurator': 'rmsd'         },
-        { 'setting': 'fnat',            'configurator': 'fnat'         },
-        #{ 'setting': 'fnat_nomodes',    'configurator': 'fnat'         },
-        { 'setting': 'saveSettings',    'configurator': 'saveSettings' },
-        { 'setting': 'collect'  ,       'configurator': 'collect'  ,   }
+        ##{ 'setting': 'irmsd_nomodes',   'configurator': 'irmsd'        },
+        { 'setting': 'rmsd',            'configurator': 'rmsd'          },
+        ##{ 'setting': 'rmsd_nomodes',    'configurator': 'rmsd'         },
+        { 'setting': 'fnat',            'configurator': 'fnat'          },
+        ##{ 'setting': 'fnat_nomodes',    'configurator': 'fnat'         },
+        { 'setting': 'saveSettings',    'configurator': 'saveSettings'  },
+        { 'setting': 'collect'  ,       'configurator': 'collect'    },
+        { 'setting': 'dof_evaluation',  'configurator': 'dof_evaluation'},
+        #{ 'setting': 'interface',       'configurator':'interface'}
                 ],
     'numThreads': 1}
     ]
 
 
+deleted_proteins = ['1BJ1', '1FSK', '1IQD', '1K4C', '1KXQ', '1NCA', '1NSN', '1QFW', '2HMI', '2JEL', '9QFW','1DE4','4FQI','4GAM','4GXU','1EXB','4FQI', '1EER','4H30' ]
 
-
-proteins =["4G6J"]
-#protein= "3MXW"
-#proteins = ["3MXW"]
 protType = "unbound"
 protTypeRef = "refe"
-basePath = "/home/glenn/work/benchmark5_testSet"
-basePath = "/home/glenn/Documents/3MXW"
-basePath= "/home/glenn"
+
 basePath = "/home/glenn/work/benchmark5_attract_new"
 
 protlist_file = basePath + "/protlist"
@@ -164,20 +114,34 @@ with open(protlist_file ,'r') as f:
     for line in lines:
         proteins.append(line.split()[0])
 
+
+try:
+    for dele in deleted_proteins:
+        proteins.remove(dele)
+except:
+    pass
+#proteins =['1A2K']
+
 numModesRec = 1
 numModesLig = 1
 scale = 1.0
-bufferSize = 30
-frac, whole = math.modf(scale)
+bufferSize = 1000
 
-bm = "test_mr{}_ml{}_s{}p{}_new".format(numModesRec, numModesLig, (int)whole,'{:6f}'.format(frac)[2:])
+frac, whole = math.modf(scale)
+extension = ""
+bm = "bm_dG_mr{}_ml{}_s{}p{}_sO_c50_mr{}_ml{}_s{}p{}{}".format(numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],extension)
+
 dry = False
 verbose = True
 overwrite = False
 num = len(proteins)
 
 
-createLoggingFile(basePath+"/loggingFile{}.log".format(str(datetime.now())))
+createLoggingFile(basePath+"/loggingFile_{}_{}.log".format(bm,str(datetime.now())))
+consoleOutputFil = basePath+"/ConsoleOutput_{}_{}.log".format(bm,str(datetime.now()))
+#sys.stdout = open(consoleOutputFil, 'w')
+
+
 
 print("\nset up buffer queues")
 inputRecQ = queue.Queue(bufferSize)
@@ -233,6 +197,10 @@ for protein in proteins:
 
 
     pairFiles = pairConfig.files
+
+    pairFiles['mode_evaluation_rec'] = receptorConfig.files['mode_evaluation']
+    pairFiles['mode_evaluation_lig'] = ligandConfig.files['mode_evaluation']
+
     pairFiles['receptor'] =             receptorConfig.files['reduce']
     pairFiles['receptor_heavy'] =       receptorConfig.files['heavy']
 
@@ -260,12 +228,10 @@ for protein in proteins:
     ligand_modeEval.files['partner_bound'] = ligandRefConfig.files['reduce']
     receptor_modeEval.files['partner_bound'] = receptorRefConfig.files['reduce']
 
+
+
     inputRecModeEvalQ.put((receptor_modeEval,protein))
     inputLigModeEvalQ.put((ligand_modeEval,protein))
-
-#pairConfig.save("/home/glenn/Documents/3MXW/3MXW/test/pairConfig.json")
-
-#ToDo: no error if buffersize is smaller than num
 
     inputRecQ.put((copy.deepcopy(receptorConfig),protein))
     inputRecQ_2.put((copy.deepcopy(receptorConfig),protein))
@@ -312,18 +278,18 @@ pipelineRecRef.join()
 pipelineLigRef.join()
 
 print("\nDO SECOND CONFIGURATION")
-pipelineRec2.start()
-pipelineLig2.start()
-pipelineRec2.join()
-pipelineLig2.join()
+#pipelineRec2.start()
+#pipelineLig2.start()
+#pipelineRec2.join()
+#pipelineLig2.join()
 
 print("\n DO PAIR CONFIGURATION")
-pipelinePairConfig.start()
-pipelinePairConfig.join()
+#pipelinePairConfig.start()
+#pipelinePairConfig.join()
 
 print("\n DO RUN")
-pipelinePairRun.start()
-pipelinePairRun.join()
+#pipelinePairRun.start()
+#pipelinePairRun.join()
 
 pipelineModeEvalLig.start()
 pipelineModeEvalLig.join()

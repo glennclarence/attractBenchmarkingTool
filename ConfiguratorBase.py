@@ -33,7 +33,7 @@ class Configurator:
         
     def run(self):
         if not self.config.getSetting(self.setting)['dryRun']:
-            if self.config.inputFilesExist(self.setting): #check wether all input files are existing
+            if self.config.inputFilesExist(self.setting) or not self.config.getSetting(self.setting)['checkInput']: #check wether all input files are existing
                 if not self.config.outputFilesExist(self.setting) or self.config.overwriteOutput(self.setting) or self.config.outputFileIsEmpty(self.setting): # continue if outputfile not existent, overwriting is allowed or the outputfile is empty
                     if not os.path.isdir(self.config.getOutputFolder(self.setting)):
                         status = os.system("mkdir -p {} ".format(self.config.getOutputFolder(self.setting)))

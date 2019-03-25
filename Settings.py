@@ -26,7 +26,8 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
         dry = False,
         verbose = False,
         overwrite = False,
-        terminiCutoff = 5.5
+        terminiCutoff = 5.5,
+        checkInput = True
     ):
     singleSetting = {
     "id":"{}{}-single".format(protein, chain ),
@@ -111,6 +112,12 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    "-modes-{}-{}.dat".format(numModes,modeType)
             },
+        'modes_manipulate':
+            {
+                'folder':       "input/modes",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-modes-{}-{}.dat".format(numModes,'manipulate')
+            },
         'modes_heavy':
             {
                 'folder':       "input/modes",
@@ -160,98 +167,98 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "in": {"protein": "reduce" },
             "out": {"out": "modes" },
             "numModes":numModes,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "bound_mode":{
             'configurator':'bound_mode',
             "in": {"protein_bound": "partner_bound",'protein_unbound':'reduce' },
             "out": {"out": "bound_modes" },
             "numModes":numModes,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "mode_evaluation":{
             'configurator':'mode_evaluation',
             "in": {"protein_bound": "partner_bound",'protein_unbound':'reduce','mode_file':'modes' },
             "out": {"out": "mode_evaluation" },
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "mode_manipulate":{
             'configurator':'mode_manipulate',
-            "in": {"protein": "reduce", 'mode_file':'modes' },
-            "out": {"out": "mode_evaluation" },
+            "in": {"protein": "reduce", 'mode_file':'modes', 'secondary':'secondary' },
+            "out": {"out": "modes_manipulate" },
             'manipulate':['T'],
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "modes_heavy":{
             'configurator':'modes',
             "in": {"protein": "heavy" },
             "out": {"out": "modes_heavy" },
             "numModes":numModes,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "alphabet":{
             'configurator':'alphabet',
             "in": {"protein": "reduce" },
             "out": {"out": "alphabet" },
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "reduce":{
             'configurator':'reduce',
             "in": {"protein": "allAtom" },
             "out": {"out": "reduce" },
             "chain": chain,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "allAtom":{
             'configurator':'allAtom',
             "in": {"protein": "pdb" },
             "out": {"out": "allAtom","mapping": "mapping" },
             "chain": chain,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "heavy":{
             'configurator':'heavy',
             "in": {"protein": "allAtom"},
             "out": {"out": "heavy"},
             "chain": chain,
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "grid":{
             'configurator':'grid',
             "in": {"alphabet": "alphabetPartner", "protein": "reduce"},
             "out": {"out": "grid" },
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "CA":{
             'configurator':'CA',
             "in": {"protein":"pdb"},
             "out":{'out':'ca'},
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "findtermini":{
             'configurator':'findtermini',
             "in": {"pdb":"pdb"},
             "out":{'out':'cutlog'},
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
             "cutoff": terminiCutoff
         },
         "cut":{
             'configurator':'cut',
             "in": {"pdb":"pdb", 'cutlog':'cutlog'},
             "out":{'out':'cut'},
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "secondary":{
             'configurator':'secondary',
             "in": {"pdb":"pdb"},
             "out":{'out':'secondary'},
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         'superimpose':{
             'configurator':'superimpose',
             "in": {"pdb":"pdb", "refpdb": 'refpdb'},
             "out":{'out':'superimpose'},
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         'saveSettings': {
             'configurator':'saveSettings',
@@ -260,8 +267,8 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             'out':{
                 'out':'settingsfile'
             },
-            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
-            }
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+        }
     }
 }
 
@@ -282,7 +289,9 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         deviceIds = [0],
         interfaceCutoff = 5,
         numCollectStructures = 50,
-        scoringCutoff = 50
+        scoringCutoff = 50,
+        num_dof_eval = 100,
+        checkInput = True
         ):
     pairSettings = {
     "id":"{}-pair".format(protein),
@@ -372,6 +381,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-dof.dat"
             },
+        'dof_test':
+            {
+                'folder':       "input/dof",
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_test.dat"
+            },
         'dockingResult':
             {
                 'folder':       "{}/result".format(benchmarkName),
@@ -460,6 +475,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-interface.json"
             },
+        'dof_evaluation':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_eval.json"
+            },
         'settingsfile':
             {
                 'folder':       "{}/settings".format(benchmarkName),
@@ -478,23 +499,27 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'configurator':'dof',
                 "in": {"receptor": "receptor","ligand": "ligand"  },
                 "out": {"out": "dof", "translate":"translate" },
-                "dryRun": dry,
-                "overwrite": overwrite,
-                "verbose": verbose,
+                "dryRun": dry, "overwrite": overwrite, "verbose": verbose,'checkInput':checkInput,
                 "dofbinary": "/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch"
+            },
+            "dof_test":{
+                'configurator':'dof_test',
+                "in": { },
+                "out": {"out": "dof_test" },
+                "dryRun": dry, "overwrite": overwrite, "verbose": verbose,'checkInput':checkInput,
             },
             "joinModes":{
                 'configurator':'joinModes',
                 "in": {"receptorModes": "modesRec","ligandModes": "modesLig"  },
                 "out": {"out": "joinedModes" },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
             },
 
             "joinModes_heavy":{
                 'configurator':'joinModes',
                 "in": {"receptorModes": "modesRec_heavy","ligandModes": "modesLig_heavy"  },
                 "out": {"out": "joinedModes_heavy" },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
             },
 
             "docking":{
@@ -520,7 +545,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "dryRun": dry,
                 "overwrite": overwrite,
                 "GPUattractBinary":attractBinaryGPU,
-                "verbose": verbose,
+                "verbose": verbose,'checkInput':True,
                 "attractParFile": attractParFile,
                 "GPUdeviceIds": deviceIds
             },
@@ -543,7 +568,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "dryRun": dry,
                 "overwrite": overwrite,
                 "attractBinary":attractBinary,
-                "verbose": verbose,
+                "verbose": verbose,'checkInput':True,
                 "attractParFile": attractParFile,
                 "cutoff":scoringCutoff
 
@@ -560,7 +585,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "filled"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
 
             },
             "sorting":
@@ -574,7 +599,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "sortedResult"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
 
             },
              "top":
@@ -588,7 +613,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "topResult"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "numDof": numCollectStructures
 ,
 
@@ -603,7 +628,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "deRedundantResult"
                 },
-                "dryRun": dry, "overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry, "overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig,
             },
@@ -624,7 +649,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig,
                 "dryRun": dry,"overwrite": overwrite,"attractBinary":attractBinary,
-                "verbose": verbose,
+                "verbose": verbose,'checkInput':False,
 
                 },
             "rmsd_nomodes":{
@@ -634,7 +659,6 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                     "inputDof":"demodeResult",
                     "ligand":"ligand",
                     "ligandRef":"ligandRef",
-                    "modes":"joinedModes",
                     "receptorRef":"receptorRef"          
                     },
                 "out": 
@@ -644,7 +668,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "numModesRec":0,
                 "numModesLig":0,
                 "dryRun": dry,"overwrite": overwrite,"attractBinary":attractBinary,
-                "verbose": verbose,
+                "verbose": verbose,'checkInput':checkInput,
                 },
             "irmsd":
             {
@@ -662,7 +686,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "irmsd"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig
             },
@@ -676,13 +700,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                     "receptorRef":"receptorRef_heavy",
                     "ligand":"ligand_heavy",
                     "ligandRef":"ligandRef_heavy",
-                    "modes":"joinedModes_heavy",
                 },
                 "out": 
                 {
                     "out": "irmsd_nomodes"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "numModesRec":0,
                 "numModesLig":0
             },
@@ -701,7 +724,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "fnat"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig
             },
@@ -714,13 +737,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                     "receptorRef":"receptorRef_heavy",
                     "ligand":"ligand_heavy",
                     "ligandRef":"ligandRef_heavy",
-                    "modes":"joinedModes_heavy"
                 },
                 "out": 
                 {
                     "out": "fnat_nomodes"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "numModesRec":0,
                 "numModesLig":0
             },
@@ -737,7 +759,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "collect"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig
             },
@@ -752,11 +774,11 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "demodeResult"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
             },
             'interface':
             {
-                'configurator':'joinModes',
+                'configurator':'interface',
                 "in": 
                 {
 
@@ -766,7 +788,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 {
                     "out": "interface"
                 },
-                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "cutoff": interfaceCutoff
             },
             'saveSettings':
@@ -779,7 +801,21 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'out':{
                     'out':'settingsfile'
                 },
-                 "dryRun": dry,"overwrite": overwrite,"verbose": verbose,
+                 "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            },
+            'dof_evaluation': {
+                'configurator':'dof_evaluation',
+                'in':{"input_dof":"deRedundantResult",
+                'mode_evaluation_rec':'mode_evaluation_rec',
+                'mode_evaluation_lig':'mode_evaluation_lig'
+                    },
+                'out':{
+                    'out':'dof_evaluation'
+                },
+                'numModesRec': numModesRec,
+                'numModesLig': numModesLig,
+                'num_eval':num_dof_eval,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
             }
         }
 }
