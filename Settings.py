@@ -138,7 +138,7 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             },
         'settingsfile':
             {
-                'folder':       "",
+                'folder':       "input/settings",
                 "name":         '{}{}-{}-mn{}-mt_{}'.format(protein, chain,protType,numModes,modeType),
                 "extension":    "-settings.json"
             },
@@ -291,7 +291,8 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         numCollectStructures = 50,
         scoringCutoff = 50,
         num_dof_eval = 100,
-        checkInput = True
+        checkInput = True,
+        dofBinary = "/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch"
         ):
     pairSettings = {
     "id":"{}-pair".format(protein),
@@ -361,13 +362,13 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
             {
                 'folder':       "input/modes",
                 "name":         '{}-{}'.format(protein,protType),
-                "extension":    "-joinedModes-r{}-l{}-{}.dat".format(numModesRec,numModesLig,modeType)
+                "extension":    "-joinedModes-r{}-l{}-{}.dat".format(20,20,modeType)
             },
         'joinedModes_heavy':
             {
                 'folder':       "input/modes",
                 "name":         '{}-{}'.format(protein,protType),
-                "extension":    "-joinedModes-heavy-r{}-l{}-{}.dat".format(numModesRec,numModesLig,modeType)
+                "extension":    "-joinedModes-heavy-r{}-l{}-{}.dat".format(20,20,modeType)
             },
         'translate':
             {
@@ -500,7 +501,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "in": {"receptor": "receptor","ligand": "ligand"  },
                 "out": {"out": "dof", "translate":"translate" },
                 "dryRun": dry, "overwrite": overwrite, "verbose": verbose,'checkInput':checkInput,
-                "dofbinary": "/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch"
+                "dofbinary": dofBinary
             },
             "dof_test":{
                 'configurator':'dof_test',

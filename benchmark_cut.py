@@ -101,8 +101,8 @@ runConfiguration = [
 
 deleted_proteins = ['1BJ1', '1FSK', '1IQD', '1K4C', '1KXQ', '1NCA', '1NSN', '1QFW', '2HMI', '2JEL', '9QFW','1DE4','4FQI','4GAM','4GXU','1EXB','4FQI', '1EER','4H30' ]
 
-protType = "unbound"
-protTypeRef = "refe"
+protType = "unbound-cut"
+protTypeRef = "refe-cut"
 pathfile = "paths_local.json"
 
 
@@ -129,14 +129,14 @@ except:
 
 
 configs = [
-{"numModesRec":0,  "numModesLig":0, "scale": 1},
+#{"numModesRec":0,  "numModesLig":0, "scale": 1},
 {"numModesRec":1,  "numModesLig":0, "scale": 1},
 {"numModesRec":0,  "numModesLig":1,"scale": 1},
-{"numModesRec":1, "numModesLig":1,"scale": 1}
+#{"numModesRec":1, "numModesLig":1,"scale": 1}
 ]
 
 
-extension = "_hin99"
+extension = "_cut"
 prefix = "00_"
 for i,c in enumerate (configs):
     prefix += "_BM{}_mr{}ml{}s{}".format(i, c['numModesRec'], c['numModesLig'], c['scale'])
@@ -216,12 +216,32 @@ for i,config in enumerate(configs):
             attractParFile = paths["attractParFile"]))
 
 
+        receptorConfig.files['cut']['name']  = '{}{}-{}'.format(protein, "A","unbound")
+        ligandConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","unbound")
+        receptorConfig.files['cut']['folder']  = "input/pdb"
+        ligandConfig.files['cut']['folder'] = "input/pdb"
+
+        receptorConfig.settings['allAtom']['in']['protein']  = 'cut'
+        ligandConfig.settings['allAtom']['in']['protein'] = 'cut'
+
+        receptorConfig.settings['secondary']['in']['pdb']  = 'cut'
+        ligandConfig.settings['secondary']['in']['pdb'] = 'cut'
+
+        receptorRefConfig.files['cut']['name']  = '{}{}-{}'.format(protein, "A","refe")
+        ligandRefConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","refe")
+        receptorRefConfig.settings['superimpose']['in']['pdb'] =    'cut'
+        ligandRefConfig.settings['superimpose']['in']['pdb'] =      'cut'
         receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
         ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
 
-        receptorRefConfig.files['refpdb'] = receptorConfig.files['pdb'] 
-        ligandRefConfig.files['refpdb'] =   ligandConfig.files['pdb'] 
+    # receptorRefConfig.files['refpdb'] = receptorConfig.files['pdb'] 
+    # ligandRefConfig.files['refpdb'] =   ligandConfig.files['pdb'] 
 
+        receptorRefConfig.files['refpdb'] = receptorConfig.files['cut'] 
+        ligandRefConfig.files['refpdb'] =   ligandConfig.files['cut'] 
+
+
+    #   makes no sense?
         receptorRefConfig.files['cutlog'] = receptorConfig.files['cutlog'] 
         ligandRefConfig.files['cutlog'] = ligandConfig.files['cutlog'] 
 
@@ -290,16 +310,21 @@ for i,config in enumerate(configs):
     #configure receptor and ligand in two steps
     pipelineRec         = createPipeline( inputRecQ, outputRecQ,bufferSize, singleConfiguration_01,  num)
     pipelineLig         = createPipeline( inputLigQ, outputLigQ,bufferSize, singleConfiguration_01, num)
+
+
     #configure grids and joined Modes
     pipelineRec2        = createPipeline( inputRecQ_2, outputRecQ2,bufferSize, singleConfiguration_02, inputRecQ_2.qsize())
     pipelineLig2        = createPipeline( inputLigQ_2, outputLigQ2,bufferSize, singleConfiguration_02, inputLigQ_2.qsize())
+
     #configure referenceStructures
     pipelineRecRef      = createPipeline( inputRecRefQ, outputRecRefQ,bufferSize, singleConfigurationRef,  num)
     pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, singleConfigurationRef,  num)
+
     #runpairconfiguration
     pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConfiguration,  num)
     #run docking, scoring and analysis
     pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
+
 
     pipelineModeEvalLig= createPipeline( inputLigModeEvalQ, outputLigModeEvalQ,bufferSize, modeEvaluation,  num)
     pipelineModeEvalRec= createPipeline( inputRecModeEvalQ, outputRecModeEvalQ,bufferSize, modeEvaluation,  num)
@@ -340,11 +365,11 @@ for i,config in enumerate(configs):
     pipelinePairRun.start()
     pipelinePairRun.join()
 
-    # logging.warning("\n\n---------------------MODE EVALUATION--------------------------------\n")
+    logging.warning("\n\n---------------------MODE EVALUATION--------------------------------\n")
 
-    pipelineModeEvalRec.start()
-    pipelineModeEvalRec.join()
+    #pipelineModeEvalRec.start()
+    #pipelineModeEvalRec.join()
 
-    pipelineModeEvalLig.start()
-    pipelineModeEvalLig.join()
+   # pipelineModeEvalLig.start()
+   # pipelineModeEvalLig.join()
 

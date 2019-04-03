@@ -539,3 +539,69 @@ BENCHMARK
 #     thread.start()
 # for thread in threads:
 #     thread.join()
+
+
+
+
+# print("\nRUN RECEPTOR CONFIG")
+# for configurator in singleConfiguration_01:
+#     configurator.setConfig(receptorConfig)
+#     configurator.run()
+
+
+# print("\nRUN RECEPTOR REF CONFIG")
+# for configurator in singleConfigurationRef:
+#     configurator.setConfig(receptorRefConfig)
+#     configurator.run()
+
+
+# for configurator in singleConfiguration_02:
+#     configurator.setConfig(receptorConfig)
+#     configurator.run()
+
+# print("\nRUN LIGAND CONFIG")
+# for configurator in singleConfiguration_01:
+#     configurator.setConfig(ligandConfig)
+#     configurator.run()
+
+# for configurator in singleConfiguration_02:
+#     configurator.setConfig(ligandConfig)
+#     configurator.run()
+
+# print("\nRUN RECEPTOR LIG CONFIG")
+# for configurator in singleConfigurationRef:
+#     configurator.setConfig(ligandRefConfig)
+#     configurator.run()
+
+# print("\nRUN PAIR CONFIG")
+# for configurator in pairConfiguration:
+#     configurator.setConfig(pairConfig)
+#     configurator.run()
+
+# for configurator in runConfiguration:
+#     configurator.setConfig(pairConfig)
+#     configurator.run()
+# files2 =[
+# '/home/glenn/work/benchmark5_attract/4G6J/input/dofs1_2.dat',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-reduce.pdb',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-reduce.pdb',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-grid.alphabet',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-grid.alphabet',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-receptor-for-docking-1-modes.dat',
+# '/home/glenn/work/benchmark5_attract/4G6J/input/4G6J-ligand-for-docking-1-modes.dat']
+
+
+# def filetolines(name):
+#     lines =[]
+#     with open(name) as f:
+#         lines = f.readlines()
+#         return lines
+
+# for f1, f2 in zip(files1, files2):
+#     print("\n\n",f1, f2)
+#     l1 = filetolines(f1)
+#     l2 = filetolines(f2)
+#     print(len(l1), len(l2))
+#     for i,(l1l, l2l) in enumerate(zip(l1,l2)):
+#         if not l1l == l2l:
+#             print(i,"\n",l1l.split() ,"\n", l2l.split())

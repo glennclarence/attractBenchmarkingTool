@@ -71,35 +71,39 @@ def modeEvalFunction(config,setting):
     
     output = config.getOutputFile(setting,'out')
 
-    bound_list = utils.readFileToList(pdb_bound)
-    unbound_list = utils.readFileToList(pdb_unbound)
-
-    unbound_residues = utils.getResidueFromPDBlines(unbound_list)
-     
-    bound_CA = utils.getCAOnlyFromPDBLines(bound_list)
-    unbound_CA = utils.getCAOnlyFromPDBLines(unbound_list)
-
-    bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_CA)
-    unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_CA)
-
     if config.getSetting(setting)['verbose']:
         print("evaluating modes for" ,mode_file)
-    modes = utils.read_modes(mode_file)
-    cumulative_overlap = 0
-    eval_dict = {}
-    for modeIdx, mode in modes.items(): 
-        ca_modes = utils.getCAModes(unbound_residues,mode['evec'])
-        overlap = utils.getOverlap (unbound_CA_pos,bound_CA_pos, ca_modes)
-        cumulative_overlap += overlap**2
-        contributionCA = utils.getModeContribution(bound_CA_pos - unbound_CA_pos, ca_modes).tolist()
-        norm = utils.getModeNorm(mode['evec'])
-        contribution = contributionCA * norm
-        magnitude = utils.getModeMagnitude(ca_modes)
-        maximaIndices = utils.getIndexMaxima(magnitude)
-        maxima = magnitude[maximaIndices]
-        eval_dict[modeIdx] = { 'overlap':overlap, 'cum_overlap': np.sqrt(cumulative_overlap),'eigenvalue':mode['eval'],'norm':norm,'contribution':contribution,'contribution_ca':contributionCA,'maxima_indices':maximaIndices.tolist(), 'maxima_values':maxima.tolist() }
 
-    utils.saveToJson(output, {'bound':pdb_bound, 'unbound':pdb_unbound, 'mode_file':mode_file, 'modes': eval_dict})
+    if not config.getSetting(setting)["dryRun"]:
+        bound_list = utils.readFileToList(pdb_bound)
+        unbound_list = utils.readFileToList(pdb_unbound)
+
+        unbound_residues = utils.getResidueFromPDBlines(unbound_list)
+        
+        bound_CA = utils.getCAOnlyFromPDBLines(bound_list)
+        unbound_CA = utils.getCAOnlyFromPDBLines(unbound_list)
+
+        bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_CA)
+        unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_CA)
+
+
+   
+        modes = utils.read_modes(mode_file)
+        cumulative_overlap = 0
+        eval_dict = {}
+        for modeIdx, mode in modes.items(): 
+            ca_modes = utils.getCAModes(unbound_residues,mode['evec'])
+            overlap = utils.getOverlap (unbound_CA_pos,bound_CA_pos, ca_modes)
+            cumulative_overlap += overlap**2
+            contributionCA = utils.getModeContribution(bound_CA_pos - unbound_CA_pos, ca_modes).tolist()
+            norm = utils.getModeNorm(mode['evec'])
+            contribution = contributionCA * norm
+            magnitude = utils.getModeMagnitude(ca_modes)
+            maximaIndices = utils.getIndexMaxima(magnitude)
+            maxima = magnitude[maximaIndices]
+            eval_dict[modeIdx] = { 'overlap':overlap, 'cum_overlap': np.sqrt(cumulative_overlap),'eigenvalue':mode['eval'],'norm':norm,'contribution':contribution,'contribution_ca':contributionCA,'maxima_indices':maximaIndices.tolist(), 'maxima_values':maxima.tolist() }
+
+        utils.saveToJson(output, {'bound':pdb_bound, 'unbound':pdb_unbound, 'mode_file':mode_file, 'modes': eval_dict})
 
 
 def createBoundModesFunction(config,setting):
@@ -107,18 +111,20 @@ def createBoundModesFunction(config,setting):
     pdb_unbound = config.getInputFile(setting,'protein_unbound')
 
     output = config.getOutputFile(setting,'out')
-
-    bound_list = utils.readFileToList(pdb_bound)
-    unbound_list = utils.readFileToList(pdb_unbound)
-
-    bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_list)
-    unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_list)
-
-    pos_delta = bound_CA_pos - unbound_CA_pos
-    norm = utils.getModeNorm(pos_delta)
     if config.getSetting(setting)['verbose']:
         print("Create bound modes for " + pdb_unbound)
-    utils.writeModeFile(output, pos_delta.T[0],pos_delta.T[1],pos_delta.T[2], 1.0) #/norm**2
+    if not config.getSetting(setting)["dryRun"]:
+        bound_list = utils.readFileToList(pdb_bound)
+        unbound_list = utils.readFileToList(pdb_unbound)
+
+        bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_list)
+        unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_list)
+
+        pos_delta = bound_CA_pos - unbound_CA_pos
+        norm = utils.getModeNorm(pos_delta)
+    
+        
+        utils.writeModeFile(output, pos_delta.T[0],pos_delta.T[1],pos_delta.T[2], 1.0) #/norm**2
 
 
 def manipulateModesFunction(config,setting):
@@ -130,21 +136,21 @@ def manipulateModesFunction(config,setting):
     settings = config.getSetting(setting)
     if config.getSetting(setting)['verbose']:
         print("Manipulating modes for" ,mode_file)
+    if not config.getSetting(setting)["dryRun"]:
+        pdb_list = utils.readFileToList(pdb)    
+        resIndices = utils.getResidueIndicesFromPDBLines(pdb_list)   
 
-    pdb_list = utils.readFileToList(pdb)    
-    resIndices = utils.getResidueIndicesFromPDBLines(pdb_list)   
+    
+        modes = utils.read_modes(mode_file)
+        sec = utils.readSecondaryStructure(secondary_file)
 
- 
-    modes = utils.read_modes(mode_file)
-    sec = utils.readSecondaryStructure(secondary_file)
+        for mode in modes.values():
+            size = len(mode['evec'])
+            for i in range(size):
+                if sec[resIndices[i]] in settings['manipulate']:
+                    mode['evec'][i] = np.zeros(3)
 
-    for mode in modes.values():
-        size = len(mode['evec'])
-        for i in range(size):
-            if sec[resIndices[i]] in settings['manipulate']:
-                mode['evec'][i] = np.zeros(3)
-
-    utils.writeModeFileFromDict(modes,output)
+        utils.writeModeFileFromDict(modes,output)
 
 #create alphatbetFiles
 def alphabetFunction(config,setting):
@@ -495,39 +501,40 @@ def evaluateModeDOFS(config, setting):
 
     if config.getSetting(setting)['verbose']:
         print("evaluating dofs for" , input_dof_file)
+    if not config.getSetting(setting)["dryRun"]:
+        dof_dict = utils.read_Dof(input_dof_file)
+        sorted_keys = np.sort(np.asarray(list(dof_dict.keys()),dtype=np.int))
+        
 
-    dof_dict = utils.read_Dof(input_dof_file)
-    sorted_keys = np.sort(np.asarray(list(dof_dict.keys()),dtype=np.int))
-    
+        contributions_rec = {}
+        for key, val in json.load(open(mode_evaluation_rec, 'r'))['modes'].items():
+            contributions_rec[int(key)] = val['contribution']
+        
+        contributions_lig = {}
+        for key, val in json.load(open(mode_evaluation_lig, 'r'))['modes'].items():
+            contributions_lig[int(key)] = val['contribution']
 
-    contributions_rec = {}
-    for key, val in json.load(open(mode_evaluation_rec, 'r'))['modes'].items():
-        contributions_rec[int(key)] = val['contribution']
-    
-    contributions_lig = {}
-    for key, val in json.load(open(mode_evaluation_lig, 'r'))['modes'].items():
-        contributions_lig[int(key)] = val['contribution']
-
-    result = {}
-    for key in sorted_keys[:num_eval]:
-        dof = dof_dict[key]
-        modes_rec = dof['rec'][6:]
-        modes_lig = dof['lig'][6:]
-        rec = {}
-        lig = {}
-        for i,mode in enumerate(modes_rec):
-            rec[str(i+1)] = {'ratio':np.float64(mode)/contributions_rec[i+1] -1, 'dof':mode}
-        for i,mode in enumerate(modes_lig):
-            lig[str(i+1)] = {'ratio':np.float64(mode)/contributions_lig[i+1] -1, 'dof':mode}
-        result[str(key)] = {'rec': rec, 'lig':lig}
-    utils.saveToJson(filename =output, data=result)
+        result = {}
+        for key in sorted_keys[:num_eval]:
+            dof = dof_dict[key]
+            modes_rec = dof['rec'][6:]
+            modes_lig = dof['lig'][6:]
+            rec = {}
+            lig = {}
+            for i,mode in enumerate(modes_rec):
+                rec[str(i+1)] = {'ratio':np.float64(mode)/contributions_rec[i+1] -1, 'dof':mode}
+            for i,mode in enumerate(modes_lig):
+                lig[str(i+1)] = {'ratio':np.float64(mode)/contributions_lig[i+1] -1, 'dof':mode}
+            result[str(key)] = {'rec': rec, 'lig':lig}
+        utils.saveToJson(filename =output, data=result)
     
 def createTestDof(config, setting):
     output = config.getOutputFile(setting, 'out')
     testDof = """#pivot auto\n#centered receptor: false\n#centered ligands: false\n#1\n           0           0           0           0           0           0\n    0           0           0           0           0           0"""
-    with open(output, 'w+') as f:
-        f.write(testDof)
-    
+    if not config.getSetting(setting)["dryRun"]:
+        with open(output, 'w+') as f:
+            f.write(testDof)
+        
 
 
 ########################specify configurators########################
