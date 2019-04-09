@@ -1,0 +1,14 @@
+{
+    "basePath" : "/home/glenn/work/benchmark5_attract_new",
+    "attractBinary"   :  "/home/glenn/Downloads/attract_fromHP/bin/attract", 
+    "attractBinPath"  :   "/home/glenn/4G6J/attract/bin", 
+    "attractParFile"  :   "/home/glenn/Documents/attract/attract.par",
+    "attractBinaryGPU" :  "/home/glenn/Documents/Masterarbeit/git/gpuATTRACT_2.0/AttractServer_RELEASE1",
+    "attractToolPath" : "$ATTRACTTOOLS",
+    
+    "dofBinary":"/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch",
+    "python2Binary":"python2",
+    "python3Binary" :"python",
+    "rmscaBinary":"/home/glenn/Documents/Masterarbeit/git/scripts/modes/rmsca",
+    "strideBinary":"stride"
+}

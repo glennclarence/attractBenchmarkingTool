@@ -16,8 +16,6 @@ singleConfiguration_01 = [
     'conf': [ 
         #{'setting': 'findtermini',  'configurator': 'findtermini'},
         #{'setting': 'cut',          'configurator': 'cut'},
-
-
         {'setting': 'allAtom',      'configurator': 'allAtom'},
         {'setting': 'reduce',       'configurator': 'reduce'},
         {'setting': 'heavy',        'configurator': 'heavy'},
@@ -26,10 +24,7 @@ singleConfiguration_01 = [
         {'setting': 'alphabet',     'configurator': 'alphabet'},
         {'setting': 'secondary',    'configurator': 'secondary'},
         {'setting': 'mode_manipulate','configurator': 'mode_manipulate'},
-        {'setting': 'saveSettings', 'configurator': 'saveSettings'},
-        {'setting': 'prune',        'configurator': 'prune'},
-        { 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
-
+        {'setting': 'saveSettings', 'configurator': 'saveSettings'}
         ],
     'numThreads': 1}
 ]
@@ -41,8 +36,7 @@ singleConfigurationRef = [
         { 'setting': 'allAtom' ,    'configurator': 'allAtom'},
         { 'setting': 'reduce' ,     'configurator': 'reduce'},
         { 'setting': 'heavy' ,     'configurator':  'heavy'},
-        { 'setting': 'saveSettings','configurator': 'saveSettings'} ,
-
+        { 'setting': 'saveSettings','configurator': 'saveSettings'} 
         ] ,
     'numThreads': 2}
 ]
@@ -101,7 +95,7 @@ runConfiguration = [
         { 'setting': 'dof_evaluation',  'configurator': 'dof_evaluation'},
         #{ 'setting': 'interface',       'configurator':'interface'}
                 ],
-    'numThreads': 1}
+    'numThreads': 2}
     ]
 
 
@@ -130,7 +124,7 @@ try:
         proteins.remove(dele)
 except:
     pass
-proteins =['7CEI']
+#proteins =['7CEI']
 
 
 
@@ -142,7 +136,7 @@ configs = [
 ]
 
 
-extension = "_hin99_prune"
+extension = "_hin99_test"
 prefix = "00_"
 for i,c in enumerate (configs):
     prefix += "_BM{}_mr{}ml{}s{}".format(i, c['numModesRec'], c['numModesLig'], c['scale'])
@@ -185,10 +179,10 @@ for i,config in enumerate(configs):
     outputLigQ2 = queue.Queue(bufferSize)
 
 
-    # inputRecModeEvalQ = queue.Queue(bufferSize)
-    # inputLigModeEvalQ = queue.Queue(bufferSize)
-    # outputRecModeEvalQ = queue.Queue(bufferSize)
-    # outputLigModeEvalQ = queue.Queue(bufferSize)
+    inputRecModeEvalQ = queue.Queue(bufferSize)
+    inputLigModeEvalQ = queue.Queue(bufferSize)
+    outputRecModeEvalQ = queue.Queue(bufferSize)
+    outputLigModeEvalQ = queue.Queue(bufferSize)
 
     pairQ = queue.Queue(bufferSize)
     pairQOutConfig = queue.Queue(bufferSize)
@@ -225,18 +219,15 @@ for i,config in enumerate(configs):
         receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
         ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
 
-        receptorRefConfig.files['refpdb']   = receptorConfig.files['pdb'] 
-        ligandRefConfig.files['refpdb']     =   ligandConfig.files['pdb'] 
+        receptorRefConfig.files['refpdb'] = receptorConfig.files['pdb'] 
+        ligandRefConfig.files['refpdb'] =   ligandConfig.files['pdb'] 
 
-        receptorRefConfig.files['cutlog']   = receptorConfig.files['cutlog'] 
-        ligandRefConfig.files['cutlog']     = ligandConfig.files['cutlog'] 
+        receptorRefConfig.files['cutlog'] = receptorConfig.files['cutlog'] 
+        ligandRefConfig.files['cutlog'] = ligandConfig.files['cutlog'] 
 
         receptorConfig.files['alphabetPartner'] = ligandConfig.files['alphabet'] 
         ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
 
-        receptorConfig.files['partner_bound'] = receptorRefConfig.files['reduce']
-        ligandConfig.files['partner_bound'] = ligandRefConfig.files['reduce']
-        print(ligandConfig.files['partner_bound'])
         pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
         numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry, verbose = verbose, overwrite = overwrite,
         attractBinary   =  paths["attractBinary"] , 
@@ -274,13 +265,17 @@ for i,config in enumerate(configs):
         pairFiles['receptorRef_heavy'] =  receptorRefConfig.files['heavy']
         pairFiles['ligandRef_heavy'] =    ligandRefConfig.files['heavy']
         
+        pairConfig.settings['docking']['in']['dof'] = pairFiles['dof_test']
 
-        # ligand_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
-        # receptor_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
-        # ligand_modeEval.files['partner_bound'] = ligandRefConfig.files['reduce']
-        # receptor_modeEval.files['partner_bound'] = receptorRefConfig.files['reduce']
-        # inputRecModeEvalQ.put((receptor_modeEval,protein))
-        # inputLigModeEvalQ.put((ligand_modeEval,protein))
+        ligand_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="B", protType = protType, numModes = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+        receptor_modeEval = Configuration(getDefaultSingleSetting(    protein=protein, chain="A", protType = protType, numModes = numModesRec,basePath = basePath + "/{}".format(protein), dry=dry ,verbose = verbose))
+        ligand_modeEval.files['partner_bound'] = ligandRefConfig.files['reduce']
+        receptor_modeEval.files['partner_bound'] = receptorRefConfig.files['reduce']
+
+
+
+        inputRecModeEvalQ.put((receptor_modeEval,protein))
+        inputLigModeEvalQ.put((ligand_modeEval,protein))
 
         inputRecQ.put((copy.deepcopy(receptorConfig),protein))
         inputRecQ_2.put((copy.deepcopy(receptorConfig),protein))
@@ -306,8 +301,8 @@ for i,config in enumerate(configs):
     #run docking, scoring and analysis
     pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
 
-    # pipelineModeEvalLig= createPipeline( inputLigModeEvalQ, outputLigModeEvalQ,bufferSize, modeEvaluation,  num)
-    # pipelineModeEvalRec= createPipeline( inputRecModeEvalQ, outputRecModeEvalQ,bufferSize, modeEvaluation,  num)
+    pipelineModeEvalLig= createPipeline( inputLigModeEvalQ, outputLigModeEvalQ,bufferSize, modeEvaluation,  num)
+    pipelineModeEvalRec= createPipeline( inputRecModeEvalQ, outputRecModeEvalQ,bufferSize, modeEvaluation,  num)
 
     print("\n DO FIRST CONFIGURATION")
     logging.warning("\n\n---------------------DO FIRST CONFIGURATION-------------------------\n")
@@ -317,39 +312,39 @@ for i,config in enumerate(configs):
     pipelineRec.join()
     pipelineLig.join()
 
-    # print("\n DO REFERENCE CONFIGURATION")
-    # logging.warning("\n\n---------------------DO REFERENCE CONFIGURATION---------------------\n")
+    print("\n DO REFERENCE CONFIGURATION")
+    logging.warning("\n\n---------------------DO REFERENCE CONFIGURATION---------------------\n")
 
     pipelineRecRef.start()
     pipelineLigRef.start()
     pipelineRecRef.join()
     pipelineLigRef.join()
 
-    # print("\nDO SECOND CONFIGURATION")
-    # logging.warning("\n\n---------------------DO SECOND CONFIGURATION------------------------\n")
+    print("\nDO SECOND CONFIGURATION")
+    logging.warning("\n\n---------------------DO SECOND CONFIGURATION------------------------\n")
 
     pipelineRec2.start()
     pipelineLig2.start()
     pipelineRec2.join()
     pipelineLig2.join()
 
-    # print("\nDO PAIR CONFIGURATION")
-    # logging.warning("\n\n---------------------DO PAIR CONFIGURATION--------------------------\n")
+    print("\nDO PAIR CONFIGURATION")
+    logging.warning("\n\n---------------------DO PAIR CONFIGURATION--------------------------\n")
 
-    # pipelinePairConfig.start()
-    # pipelinePairConfig.join()
+    pipelinePairConfig.start()
+    pipelinePairConfig.join()
 
-    # print("\nDO RUN")
-    # logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
+    print("\nDO RUN")
+    logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
 
-    # pipelinePairRun.start()
-    # pipelinePairRun.join()
+    pipelinePairRun.start()
+    pipelinePairRun.join()
 
     # logging.warning("\n\n---------------------MODE EVALUATION--------------------------------\n")
 
-    # pipelineModeEvalRec.start()
-    # pipelineModeEvalRec.join()
+    pipelineModeEvalRec.start()
+    pipelineModeEvalRec.join()
 
-    # pipelineModeEvalLig.start()
-    # pipelineModeEvalLig.join()
+    pipelineModeEvalLig.start()
+    pipelineModeEvalLig.join()
 

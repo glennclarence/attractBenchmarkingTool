@@ -65,6 +65,7 @@ class Configuration:
         for fileid in inFiles.values():
             try:
                 if not self.fileExists(fileid):
+                    print("DOES NOT EXIST ", fileid)
                     exists = False
             except:
                 pass

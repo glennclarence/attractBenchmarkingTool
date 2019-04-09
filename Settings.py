@@ -39,6 +39,12 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    ".pdb"
             },
+        'partner_bound':
+            {
+                'folder':       "input/pdb",
+                "name":         '{}{}-{}'.format(protein, chain,"refe"),
+                "extension":    "-r.pdb"
+            },
         'refpdb':
             {
                 'folder':       "",
@@ -50,6 +56,12 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 'folder':       "input/pdb",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    "-r.pdb"
+            },
+        'prune':
+            {
+                'folder':       "input/pdb",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-pruned.pdb"
             },
         'mapping':
             {
@@ -153,7 +165,14 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 'folder':       "input/modes",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    "-modes-{}-{}.dat".format(1,'bound')
+            },
+        'bound_modes_heavy':
+            {
+                'folder':       "input/modes",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-modes-{}-{}.dat".format(1,'bound_heavy')
             }
+
         },
     "settings": {
         "pythonBinary":pythonBinary,
@@ -176,11 +195,19 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "numModes":numModes,
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
+        "bound_mode_heavy":{
+            'configurator':'bound_mode',
+            "in": {"protein_bound": "partner_bound_heavy",'protein_unbound':'heavy' },
+            "out": {"out": "bound_modes_heavy" },
+            "numModes":numModes,
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+        },
         "mode_evaluation":{
             'configurator':'mode_evaluation',
             "in": {"protein_bound": "partner_bound",'protein_unbound':'reduce','mode_file':'modes' },
             "out": {"out": "mode_evaluation" },
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            "numModes":numModes
         },
         "mode_manipulate":{
             'configurator':'mode_manipulate',
@@ -207,6 +234,12 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             "in": {"protein": "allAtom" },
             "out": {"out": "reduce" },
             "chain": chain,
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+        },
+        "prune":{
+            'configurator':'prune',
+            "in": {"pdb": "reduce" },
+            "out": {"out": "prune" },
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "allAtom":{
