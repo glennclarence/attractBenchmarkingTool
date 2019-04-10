@@ -249,15 +249,15 @@ for i,config in enumerate(configs):
         ligandConfig.files['alphabetPartner'] = receptorConfig.files['alphabet'] 
 
         pairConfig      = Configuration(getDefaultPairSetting(benchmarkName = bm,protein = protein, protType = protType, protTypeRef = protTypeRef, 
-        numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry, verbose = verbose, overwrite = overwrite,
-        attractBinary   =  paths["attractBinary"] , 
-        attractBinPath  =  paths["attractBinPath"], 
-        attractParFile  =  paths["attractParFile"],
-        dofBinary       =  paths["dofBinary"],
-        pythonBinary    =  paths["python2Binary"],
-        attractToolPath =  paths["attractToolPath"],
-        attractBinaryGPU = paths["attractBinaryGPU"],
-        deviceIds = [0,1], evScale=scale))
+            numModesRec = numModesRec,numModesLig = numModesLig,basePath = basePath + "/{}".format(protein), dry=dry, verbose = verbose, overwrite = overwrite,
+            attractBinary   =  paths["attractBinary"] , 
+            attractBinPath  =  paths["attractBinPath"], 
+            attractParFile  =  paths["attractParFile"],
+            dofBinary       =  paths["dofBinary"],
+            pythonBinary    =  paths["python2Binary"],
+            attractToolPath =  paths["attractToolPath"],
+            attractBinaryGPU = paths["attractBinaryGPU"],
+            deviceIds = [0,1], evScale=scale))
 
 
         pairFiles = pairConfig.files

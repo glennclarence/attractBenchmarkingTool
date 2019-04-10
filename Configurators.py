@@ -504,7 +504,6 @@ def evaluateModeDOFS(config, setting):
     if not config.getSetting(setting)["dryRun"]:
         dof_dict = utils.read_Dof(input_dof_file)
         sorted_keys = np.sort(np.asarray(list(dof_dict.keys()),dtype=np.int))
-        
 
         contributions_rec = {}
         for key, val in json.load(open(mode_evaluation_rec, 'r'))['modes'].items():

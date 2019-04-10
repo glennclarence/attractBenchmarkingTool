@@ -24,17 +24,17 @@ class PipeLine:
     def get(self):
         return self.queues[-1].get()
 
-def createPipeline( inputQueue, outputQueue,bufferSize, configurators, numItems):
+def createPipeline( bufferSize, configurators, numItems):  #inputQueue, outputQueue,
     queues = []
 
 
-    queues.append(inputQueue)
+    #queues.append(inputQueue)
+    queues.append(queue.Queue(bufferSize))
     for i in range(len(configurators)-1):
         queues.append(queue.Queue(bufferSize))
-    queues.append(outputQueue)
-
+    queues.append(queue.Queue(bufferSize))
+    #queues.append(outputQueue)
     threads = []
-
 
     for i, configurator in enumerate(configurators):
         try:
