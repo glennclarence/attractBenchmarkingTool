@@ -128,7 +128,13 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             {
                 'folder':       "input/modes",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
-                "extension":    "-modes-{}-{}.dat".format(numModes,'manipulate')
+                "extension":    "-modes-{}-{}.dat".format(numModes,'manipulate_1')
+            },
+        'modes_manipulate_heavy':
+            {
+                'folder':       "input/modes",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-modes-{}-{}.dat".format(numModes,'manipulate_heavy_1')
             },
         'modes_heavy':
             {
@@ -213,7 +219,14 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             'configurator':'mode_manipulate',
             "in": {"protein": "reduce", 'mode_file':'modes', 'secondary':'secondary' },
             "out": {"out": "modes_manipulate" },
-            'manipulate':['T'],
+            'manipulate':['C'],
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+        },
+        "mode_manipulate_heavy":{
+            'configurator':'mode_manipulate',
+            "in": {"protein": "heavy", 'mode_file':'modes_heavy', 'secondary':'secondary' },
+            "out": {"out": "modes_manipulate_heavy" },
+            'manipulate':['C'],
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         "modes_heavy":{
@@ -469,6 +482,12 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-rmsd.dat"
             },
+        'rmsd_unsorted':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-rmsd_unsorted.dat"
+            },
         'rmsd_nomodes':
             {
                 'folder':       "{}/analysis".format(benchmarkName),
@@ -503,17 +522,53 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-collect.pdb"
             },
+        'collect_low':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-collect_low.pdb"
+            },
+        'collect_high':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-collect_high.pdb"
+            },
         'interface':
             {
                 'folder':       "{}/analysis".format(benchmarkName),
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-interface.json"
             },
+        'interface_low':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-interface_low.json"
+            },
+        'interface_high':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-interface_high.json"
+            },
         'dof_evaluation':
             {
                 'folder':       "{}/analysis".format(benchmarkName),
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-dof_eval.json"
+            },
+        'dofs_extractedLow':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_extractedLow.dat"
+            },
+        'dofs_extractedHigh':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_extractedHigh.dat"
             },
         'settingsfile':
             {
@@ -686,6 +741,26 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "verbose": verbose,'checkInput':False,
 
                 },
+            "rmsd_unsorted":{
+                'configurator':'rmsd',
+                "in": 
+                {
+                    "inputDof":"filled",
+                    "ligand":"ligand",
+                    "ligandRef":"ligandRef",
+                    "modes":"joinedModes",
+                    "receptorRef":"receptorRef"          
+                    },
+                "out": 
+                {
+                    "out": "rmsd_unsorted"
+                },
+                "numModesRec":numModesRec,
+                "numModesLig":numModesLig,
+                "dryRun": dry,"overwrite": overwrite,"attractBinary":attractBinary,
+                "verbose": verbose,'checkInput':False,
+
+                },
             "rmsd_nomodes":{
                 'configurator':'rmsd',
                 "in": 
@@ -815,12 +890,51 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'configurator':'interface',
                 "in": 
                 {
-
+                    'receptor': 'receptor',
+                    'ligand': 'ligand',
+                     'receptorSec': 'receptorSec',
+                    'ligandSec': 'ligandSec',
                     'pdb': 'collect'
                 },
                 "out": 
                 {
                     "out": "interface"
+                },
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+                "cutoff": interfaceCutoff
+            },
+            'interface_low':
+            {
+                'configurator':'interface',
+                "in": 
+                {
+                    'receptor': 'receptor',
+                    'ligand': 'ligand',
+                    'receptorSec': 'receptorSec',
+                    'ligandSec': 'ligandSec',
+                    'pdb': 'collect_low'
+                },
+                "out": 
+                {
+                    "out": "interface_low"
+                },
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+                "cutoff": interfaceCutoff
+            },
+            'interface_high':
+            {
+                'configurator':'interface',
+                "in": 
+                {
+                    'receptor': 'receptor',
+                    'ligand': 'ligand',
+                     'receptorSec': 'receptorSec',
+                    'ligandSec': 'ligandSec',
+                    'pdb': 'collect_high'
+                },
+                "out": 
+                {
+                    "out": "interface_high"
                 },
                 "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
                 "cutoff": interfaceCutoff
@@ -850,7 +964,67 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'numModesLig': numModesLig,
                 'num_eval':num_dof_eval,
                 "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
-            }
+            },
+            'dof_extractionLow': {
+                'configurator':'dof_extraction',
+                'in':{"inpuf_dofs":"deRedundantResult",
+                        'rmsd_file':"rmsd"
+                    },
+                'out':{
+                    'out':'dofs_extractedLow'
+                },
+                'maxDof': 50,
+                'threshold': 10,
+                'type':'max',
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            },
+            'dof_extractionHigh': {
+                'configurator':'dof_extraction',
+                'in':{"inpuf_dofs":"deRedundantResult",
+                        'rmsd_file':"rmsd"
+                    },
+                'out':{
+                    'out':'dofs_extractedHigh'
+                },
+                'maxDof': 50,
+                'threshold':  25,
+                'type':'min',
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            },
+            "collect_Low":{
+                'configurator':'collect',
+                "in": 
+                {
+                    "inputDof":"dofs_extractedLow",
+                    "receptor":"receptor",
+                    "ligand":"ligand",
+                    "modes":"joinedModes"
+                },
+                "out": 
+                {
+                    "out": "collect_low"
+                },
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
+                "numModesRec":numModesRec,
+                "numModesLig":numModesLig
+            },
+            "collect_High":{
+                'configurator':'collect',
+                "in": 
+                {
+                    "inputDof":"dofs_extractedHigh",
+                    "receptor":"receptor",
+                    "ligand":"ligand",
+                    "modes":"joinedModes"
+                },
+                "out": 
+                {
+                    "out": "collect_high"
+                },
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':False,
+                "numModesRec":numModesRec,
+                "numModesLig":numModesLig
+            },
         }
 }
 

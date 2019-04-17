@@ -5,6 +5,8 @@ import logging
 import utils as utils
 import json
 import numpy as np
+import jsonpickle
+from collections import Counter
 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
@@ -149,6 +151,8 @@ def manipulateModesFunction(config,setting):
             for i in range(size):
                 if sec[resIndices[i]] in settings['manipulate']:
                     mode['evec'][i] = np.zeros(3)
+                # if i < size/10 or i > size/10*9:
+                #     mode['evec'][i] = np.zeros(3)
 
         utils.writeModeFileFromDict(modes,output)
 
@@ -457,25 +461,135 @@ def GetInterface(config, setting):
     #ligand = config.getInputFile(setting,'ligand')
     pdb = config.getInputFile(setting,              'pdb')
     interfaceFile = config.getOutputFile(setting,   'out')
+    receptor_filename  = config.getInputFile(setting,              'receptor')
+    ligand_filename  = config.getInputFile(setting,              'ligand')
+    receptorSec_filename  = config.getInputFile(setting,              'receptorSec')
+    ligandSec_filename  = config.getInputFile(setting,              'ligandSec')
+
+
+
     cutoff = config.getSetting(setting)['cutoff']
 
     if config.getSetting(setting)['verbose']:
         print("Get interface from pdb " + pdb )
     if not config.getSetting(setting)["dryRun"]:
-        structures = utils.parseBIOPdbToStructure(pdb)
-        interfaces = []
-        for struct in structures:
-            receptor =  struct['A']       
-            ligand =    struct['B']                
-        
-            contactResiduesRec, contactResiduesLig = utils.getInterfaceResidues(receptor,ligand,cutoff )
-            recinterfaceResidues = utils.getResidueIds(contactResiduesRec)
-            liginterfaceResidues = utils.getResidueIds(contactResiduesLig)
+        try:
+            receptorSec =   utils.getSecLines(utils.readFileToList(receptorSec_filename))
+            ligandSec = utils.getSecLines(utils.readFileToList(ligandSec_filename))
+            receptorLines = utils.readFileToList(receptor_filename)
+            ligandLines = utils.readFileToList(ligand_filename)
+            recResIds = utils.getResidueFromPDBlines(receptorLines)
+            ligResIds = utils.getResidueFromPDBlines(ligandLines)
+            recResIndices = utils.getResidueIndicesFromPDBLines(receptorLines)
+            ligResIndices = utils.getResidueIndicesFromPDBLines(ligandLines)
 
-            interfaces.append({'model': struct.id,"recInterfaceResidues": recinterfaceResidues,"ligInterfaceResidues": liginterfaceResidues})
+            # recResiduesAA = utils.getResidueNamesFromPDBlines(receptorLines)
+            # ligResiduesAA = utils.getResidueNamesFromPDBlines(ligandLines)
+            # recmap = {}
+            # ligmap = {}
+            # for  recId, i in zip(recResIds, recResIndices):
+            #     recmap[recId] = i
+            # for  ligId, i in zip(ligResIds, ligResIndices):
+            #     ligmap[ligId] = i
+            currid = None
+            recmap = {}
+            count = 0
+            for rid in recResIds:
+                if rid != currid:
+                    recmap[rid] = count  
+                    currid = rid
+                    count += 1
+            currid = None
+            ligmap = {}
+            count = 0
+            for lid in ligResIds:
+                if lid != currid:
+                    ligmap[lid] = count  
+                    currid = lid
+                    count += 1
 
-        utils.saveToJson(interfaceFile, {'file': pdb, 'cutoff': cutoff,'interfaces': interfaces})
+            # print (recmap)
+            structures = utils.parseBIOPdbToStructure(pdb)
+            interfaces = []
+            if len(structures) > 0:
+                for struct in structures:
+                    receptor =  struct['A']       
+                    ligand =    struct['B']                
+                
+                    contactResiduesRec, contactResiduesLig = utils.getInterfaceResidues(receptor,ligand,cutoff )
+                    if len(contactResiduesRec) > 0 or len(contactResiduesLig) > 0:
+                        recinterfaceResidues = utils.getResidueIds(contactResiduesRec)
+                        liginterfaceResidues = utils.getResidueIds(contactResiduesLig)
 
+                        interfacePosRec = utils.getResidueCoordinates(contactResiduesRec).T
+                        interfacePosLig = utils.getResidueCoordinates(contactResiduesLig).T
+
+                        interfaceRecIndices = [recmap[key] for key in recinterfaceResidues ]
+                        interfaceLigIndices = [ligmap[key] for key in liginterfaceResidues ]
+                        
+                        # AARec = [receptorSec[i][1] for i in interfaceRecIndices ]
+                        # AALig = [ligandSec[i][1] for i in interfaceLigIndices ]
+
+                        isecRec = []
+                        AARec = []
+                        areaRec = 0
+                        for i in interfaceRecIndices:
+                            line = receptorSec[i]
+                            isecRec.append(line[5])
+                            AARec.append(line[1])
+                            areaRec += float(line[9])
+
+                        isecLig = []
+                        AALig = []
+                        areaLig = 0
+                        for i in interfaceLigIndices:
+                            line = ligandSec[i]
+                            isecLig.append(line[5])
+                            AALig.append(line[1])
+                            areaLig += float(line[9])
+
+                        AARecCount = {}
+                        aalen = float(len(AARec))
+                        for key, value in Counter(AARec).items():
+                            AARecCount[key] = value / aalen
+
+                        AALigCount = {}
+                        aalen = float(len(AALig))
+                        for key, value in Counter(AALig).items():
+                            AALigCount[key] = value / aalen
+
+                        
+                        # isecRec= [receptorSec[i][5] for i in interfaceRecIndices ]
+                        # isecLig = [ligandSec[i][5] for i in interfaceLigIndices ]
+
+                        countSecRec = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+                        lenSec = float(len(isecRec))
+                        for key, value in Counter(isecRec).items():
+                            countSecRec[key] = value / lenSec
+
+                        countSecLig = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+                        lenSec = float(len(isecLig))
+                        for key, value in Counter(isecLig).items():
+                            countSecLig[key] = value /lenSec
+
+                        interfaces.append({'model': struct.id,"recInterfaceResidues": recinterfaceResidues,"ligInterfaceResidues": liginterfaceResidues, "recAA":AARec,'ligAA':AALig,
+                        'rec_x':list(interfacePosRec[0]),
+                        'rec_y':list(interfacePosRec[1]),
+                        'rec_z':list(interfacePosRec[2]),
+                        'lig_x':list(interfacePosLig[0]),
+                        'lig_y':list(interfacePosLig[1]),
+                        'lig_z':list(interfacePosLig[2]),
+                        'rec_sec':isecRec,
+                        'lig_sec':isecLig,
+                        'countSecRec': countSecRec,'countSecLig': countSecLig,
+                        'AALigCount': AALigCount, 'AARecCount': AARecCount, 
+                        'areaRec':areaRec, 'areaLig': areaLig
+                        })
+
+                    utils.saveToJson(interfaceFile, {'file': pdb, 'cutoff': cutoff,'interfaces': interfaces})
+        except:
+            print("eval interface: FAILED",interfaceFile )
+            pass
 def SuperimposeStructures(config, setting):
     inputPdb = config.getInputFile(setting, "pdb")
     refPdb = config.getInputFile(setting, "refpdb")
@@ -566,9 +680,9 @@ def prunePDB(config, setting):
                     y = utils.pdbentry('posY',lineRestStart)
                     z = utils.pdbentry('posZ',lineRestStart)
 
-                    lineRestEnd = utils.setpdbentry('posX',lineRestEnd,x )
+                    lineRestEnd = utils.setpdbentry('posX',lineRestEnd,x)
                     lineRestEnd = utils.setpdbentry('posY',lineRestEnd,y )
-                    lineRestEnd = utils.setpdbentry('posZ',lineRestEnd,z )
+                    lineRestEnd = utils.setpdbentry('posZ',lineRestEnd,z)
                     pdb_lines[i-1] = lineRestEnd
 
         with open(output,'w+') as f:
@@ -576,6 +690,32 @@ def prunePDB(config, setting):
                 f.write(line)
 
 
+def extraxtDofs(config, setting):
+    output_dofs = config.getOutputFile(setting, 'out')
+    input_dofs = config.getInputFile(setting, 'inpuf_dofs')
+    rmsd_file = config.getInputFile(setting, 'rmsd_file')
+    operatorType = config.getSetting(setting)['type']
+    threshhold = config.getSetting(setting)['threshold']
+    maxDof = config.getSetting(setting)['maxDof']
+
+    if config.getSetting(setting)['verbose']:
+        print("extracting dofs pdb: " , input_dofs)
+
+    if not config.getSetting(setting)["dryRun"]:
+        if operatorType == 'max':
+            selectOperator = lambda rmsd : rmsd < threshhold
+        if operatorType == 'min':
+            selectOperator = lambda rmsd : rmsd > threshhold
+        header  = utils.readDofHeader(input_dofs)
+        rmsd_arr = np.asarray( [float(line.split()[1]) for line in utils.readFileToList(rmsd_file)])
+        dofs = utils.read_Dof(input_dofs) 
+        selectedDofs = []
+        for i,rmsd in enumerate(rmsd_arr[:maxDof]):
+            if selectOperator(rmsd):
+                selectedDofs.append(dofs[i+1])
+
+
+        utils.writeDofFile(output_dofs, header, selectedDofs)
 
 ########################specify configurators########################
 
@@ -703,5 +843,6 @@ configuratorFunctions = {
     'dof_evaluation':evaluateModeDOFS,
     'dof_test':     createTestDof,
     'mode_manipulate':manipulateModesFunction,
-    'prune':        prunePDB
+    'prune':        prunePDB,
+    'dof_extraction':extraxtDofs
     }

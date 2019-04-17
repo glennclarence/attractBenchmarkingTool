@@ -37,7 +37,7 @@ class ConsumerThread(threading.Thread):
     def run(self):
         while not self.kill.is_set():
             if not self.inputQueue.empty():
-                #print("worker qsize", self.inputQueue.qsize())
+                
                 ( item, id ) = self.inputQueue.get()
                 for configurator in self.configurators:
                     #try:
@@ -50,20 +50,17 @@ class ConsumerThread(threading.Thread):
                 self.resultQueue.put((item, id))
 
                 self.counter.increment()
-
+                #print("worker qsize- name:",self.name, self.inputQueue.qsize())
             if self.counter.value() >= self.threshold and self.dorun:
-                #print("quit this thread ", self.counter.value(),self.threshold,self.inputQueue.qsize())
+                #print("quit this thread ",self.name, "count",self.counter.value(),"threshold",self.threshold,"input size ",self.inputQueue.qsize(),"finish thresh",self.finishThreshold)
                 self.dorun = False
                 self.finishCounter.increment()
 
             if self.finishCounter.value() >= self.finishThreshold:
                 self.stop()
                 print("Kill Thread - name:",self.name, " Finished Threads:" ,self.finishCounter.value(),"Finished Items: ",self.counter.value(),"Number of target Items:",self.threshold,"Remaning objects: ",self.inputQueue.qsize())
-
-                #print("killAll",self.name,self.finishCounter.value())
-
-                return 
-
+                #return 
+            time.sleep(0.01)
                 
         return
 

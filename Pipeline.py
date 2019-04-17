@@ -46,13 +46,14 @@ def createPipeline( bufferSize, configurators, numItems):  #inputQueue, outputQu
         finishCounter = ThreadCounter(0)
         finishThreshold = configurator['numThreads']
         for k in range(configurator['numThreads']):
+
             if type(configurator['conf']) != list:
                 configuratorList = [configurator['conf']]
             else:
                 configuratorList = configurator['conf']
             ctrs =  []
             for con in configuratorList:
-                print("create cofigurator ", i, "setting", con['setting'], "with configurator function", con['configurator'])
+                print("create cofigurator ", i, "setting", con['setting'], "with configurator function", con['configurator'], "numThread", k)
                 ctrs.append(Configurator(con['setting'],configuratorFunctions[con['configurator']]))
 
             c = ConsumerThread(configurators = copy.deepcopy(ctrs), threshold = numItems,inputQueue=queues[i],resultQueue = queues[i+1],counter = counter,finishCounter =finishCounter, finishThreshold = finishThreshold,  name= "{}_{}".format(configuratorList[0]['configurator'], k))

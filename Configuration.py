@@ -1,6 +1,7 @@
 
 import json
 import os
+import jsonpickle
 
 def fileIsEmpty(filename):
     return os.stat(filename).st_size == 0
@@ -124,7 +125,7 @@ class Configuration:
             safeDict = {}
             safeDict['files'] = self.files
             safeDict['settings'] = self.settings
-
+            #jsonpickle.dumps(safeDict, write_file)
             json.dump(safeDict, write_file)
 
     def getInputFile(self, setting, inFileId):

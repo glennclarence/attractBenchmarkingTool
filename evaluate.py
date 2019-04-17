@@ -70,6 +70,7 @@ def evaluateBenchmarks( base_path, protein_list,proteinTypes, benchmark_names):
     result = []
     for proteinType, bm in zip(proteinTypes,benchmark_names):
         for protein in protein_list:
+            print("processing protein", protein ,"in benchmark", bm)
             path = getBenchmarkpath(base_path, protein, bm)
             rmsd_filename = os.path.join(path,"analysis/{}-{}-rmsd.dat".format(protein, proteinType ))
             irmsd_filename = os.path.join(path,"analysis/{}-{}-irmsd.dat".format(protein, proteinType ))
@@ -130,57 +131,92 @@ def evaluateSingle( base_path, protein_list,proteinTypes, benchmark_names):
     result =[]
     for proteinType, bm in zip(proteinTypes,benchmark_names):
         for protein in protein_list:
-            path = getBenchmarkpath(base_path, protein, bm)
-            rmsd_filename = os.path.join(path,"analysis/{}-{}-rmsd.dat".format(protein, proteinType ))
-            irmsd_filename = os.path.join(path,"analysis/{}-{}-irmsd.dat".format(protein, proteinType ))
-            fnat_filename = os.path.join(path,"analysis/{}-{}-fnat.dat".format(protein, proteinType ))
-            energy_filename = os.path.join(path,"analysis/{}-{}-deredundant.dat".format(protein, proteinType ))
-            dof_filename = os.path.join(path,"analysis/{}-{}-dof_eval.json".format(protein, proteinType ))
+            try:
+                path = getBenchmarkpath(base_path, protein, bm)
+                rmsd_filename = os.path.join(path,"analysis/{}-{}-rmsd.dat".format(protein, proteinType ))
+                irmsd_filename = os.path.join(path,"analysis/{}-{}-irmsd.dat".format(protein, proteinType ))
+                fnat_filename = os.path.join(path,"analysis/{}-{}-fnat.dat".format(protein, proteinType ))
+                energy_filename = os.path.join(path,"analysis/{}-{}-deredundant.dat".format(protein, proteinType ))
+                dof_filename = os.path.join(path,"analysis/{}-{}-dof_eval.json".format(protein, proteinType ))
 
-            rmsd = readRMSD(rmsd_filename)
-            irmsd = readRMSD(irmsd_filename)
-            energies = readEnergies(energy_filename)
-            fnat = readFNAT(fnat_filename)
-            if rmsd is np.nan or irmsd is np.nan or fnat is np.nan: 
-                print("could not evaluate protein" , protein, " at benchmark " , bm)
-                continue
-            capri_list = getCAPRIRating(rmsd, irmsd, fnat)
+                rmsd = readRMSD(rmsd_filename)
+                irmsd = readRMSD(irmsd_filename)
+                energies = readEnergies(energy_filename)
+                fnat = readFNAT(fnat_filename)
+                if rmsd is np.nan or irmsd is np.nan or fnat is np.nan: 
+                    print("could not evaluate protein" , protein, " at benchmark " , bm)
+                    continue
+                capri_list = getCAPRIRating(rmsd, irmsd, fnat)
 
-            
-            modeType ="none"
-            if "boundModes" in bm:
-                modeType = "boundModes"
-            if "brownian" in bm:
-                modeType = "brownian"
-            if "hin99" in bm:
-                modeType = "hin99"
-            bound = "bound" in bm and not "boundModes" in bm
+                
+                modeType ="none"
+                if "boundModes" in bm:
+                    modeType = "boundModes"
+                if "brownian" in bm:
+                    modeType = "brownian"
+                if "hin99" in bm:
+                    modeType = "hin99"
+                bound = "bound" in bm and not "boundModes" in bm
 
-            row = {                "protein":protein,
-                "cut": "cut" in bm,
-                "numModesRec": int(bm.split('_')[2][2:]),
-                "numModesLig": int(bm.split('_')[3][2:]),
-                "scale": float(bm.split('_')[4][1:].replace('p','.')),
-                "bound": bound,
-                "modetype": modeType,
-                "capri":capri_list[0],
-                "irmsd":irmsd[0],
-                "lrmsd":rmsd[0],
-                "fnat":fnat[0],
-                "energy" : energies[0],
+                row = {                "protein":protein,
+                    "cut": "cut" in bm,
+                    "numModesRec": int(bm.split('_')[2][2:]),
+                    "numModesLig": int(bm.split('_')[3][2:]),
+                    "scale": float(bm.split('_')[4][1:].replace('p','.')),
+                    "bound": bound,
+                    "modetype": modeType,
+                    "capri":capri_list[0],
+                    "irmsd":irmsd[0],
+                    "lrmsd":rmsd[0],
+                    "fnat":fnat[0],
+                    "energy" : energies[0],
 
-                'bm':bm
-             }
+                    'bm':bm
+                }
 
-            dof_eval = json.load(open(dof_filename))["1"]
-            for modeIdx,value  in dof_eval['rec'].items():
-                row['rec_ratiomode_{}'.format(modeIdx)] = value['ratio']
-            for modeIdx,value  in dof_eval['lig'].items():
-                row['lig_ratiomode_{}'.format(modeIdx)] = value['ratio']
-            result.append(row)
+                dof_eval = json.load(open(dof_filename))["1"]
+                for modeIdx,value  in dof_eval['rec'].items():
+                    row['rec_ratiomode_{}'.format(modeIdx)] = value['ratio']
+                for modeIdx,value  in dof_eval['lig'].items():
+                    row['lig_ratiomode_{}'.format(modeIdx)] = value['ratio']
+                result.append(row)
+            except:
+                print("couldn't get protein", protein,bm)
+                pass
     return pd.DataFrame(result)
 
 
+
+def interface( benchmark_names, base_path, protein_list, protein_types):
+
+    result = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+    result_high = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+
+    count = 0
+    count_high = 0
+    for proteinType, bm in zip(protein_types,benchmark_names):
+            for protein in protein_list:
+                try:
+                    path_low = getBenchmarkpath(base_path, protein, bm) + "/analysis/{}-{}-interface_high.json".format( protein, proteinType)
+                    path_high = getBenchmarkpath(base_path, protein, bm) + "/analysis/{}-{}-interface_low.json".format( protein, proteinType)
+                    data_low = json.load(open(path_low))
+                    data_high = json.load(open(path_high))
+                    for i in data_low['interfaces']:
+                        count += 1
+                        for key, val in i['countSecRec'].items():
+                            result[key] += val
+                    for i in data_high['interfaces']:
+                        count_high += 1
+                        for key, val in i['countSecRec'].items():
+                            result_high[key] += val
+                except:
+                    print('unable to read', protein)
+                    pass
+    for key, val in result.items():
+        result[key] /= float(count)
+    for key, val in result_high.items():
+        result_high[key] /= float(count_high)
+    return result, result_high
 #evaluateBenchmarks(base_path, protein_list,[ 'unbound'], ['bm_dG_mr1_ml0_s1p000000_sO_c50_mr1_ml0_s1p000000_hin99'])  
 bms = [
 'bm_dG_mr0_ml0_s1p000000_sO_c50_mr0_ml0_s1p000000_cut',
