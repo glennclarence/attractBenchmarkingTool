@@ -177,7 +177,13 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
                 'folder':       "input/modes",
                 "name":         '{}{}-{}'.format(protein, chain,protType),
                 "extension":    "-modes-{}-{}.dat".format(1,'bound_heavy')
-            }
+            },
+        'protein_evaluation':
+            {
+                'folder':       "input/pdb",
+                "name":         '{}{}-{}'.format(protein, chain,protType),
+                "extension":    "-evaluation.json"
+            },
 
         },
     "settings": {
@@ -210,7 +216,7 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
         },
         "mode_evaluation":{
             'configurator':'mode_evaluation',
-            "in": {"protein_bound": "partner_bound",'protein_unbound':'reduce','mode_file':'modes' },
+            "in": {"protein_bound": "partner_bound",'protein_unbound':'reduce','mode_file':'modes','secondary':'secondary' },
             "out": {"out": "mode_evaluation" },
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
             "numModes":numModes
@@ -298,6 +304,12 @@ def getDefaultSingleSetting(protein, chain, protType, numModes,basePath,
             'configurator':'secondary',
             "in": {"pdb":"pdb"},
             "out":{'out':'secondary'},
+            "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+        },
+        "protein_evaluation":{
+            'configurator':'evalProtein',
+            "in": {"secondary":"secondary"},
+            "out":{'out':'protein_evaluation'},
             "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
         },
         'superimpose':{
@@ -431,7 +443,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         'dof_test':
             {
                 'folder':       "input/dof",
-                "name":         '{}-{}'.format(protein,protType),
+                "name":         '{}'.format(protein),
                 "extension":    "-dof_test.dat"
             },
         'dockingResult':
@@ -558,6 +570,18 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 "name":         '{}-{}'.format(protein,protType),
                 "extension":    "-dof_eval.json"
             },
+        'dof_evaluation_low':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_eval_low.json"
+            },
+        'dof_evaluation_high':
+            {
+                'folder':       "{}/analysis".format(benchmarkName),
+                "name":         '{}-{}'.format(protein,protType),
+                "extension":    "-dof_eval_high.json"
+            },
         'dofs_extractedLow':
             {
                 'folder':       "{}/analysis".format(benchmarkName),
@@ -628,6 +652,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                     },
                 "out": 
                 {"out": "dockingResult"},
+                "modesOnly":False,
                 "numModesRec":numModesRec,
                 "numModesLig":numModesLig,
                 "evScale":evScale,
@@ -959,6 +984,34 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                     },
                 'out':{
                     'out':'dof_evaluation'
+                },
+                'numModesRec': numModesRec,
+                'numModesLig': numModesLig,
+                'num_eval':num_dof_eval,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            },
+            'dof_evaluation_low': {
+                'configurator':'dof_evaluation',
+                'in':{"input_dof":"dofs_extractedLow",
+                'mode_evaluation_rec':'mode_evaluation_rec',
+                'mode_evaluation_lig':'mode_evaluation_lig'
+                    },
+                'out':{
+                    'out':'dof_evaluation_low'
+                },
+                'numModesRec': numModesRec,
+                'numModesLig': numModesLig,
+                'num_eval':num_dof_eval,
+                "dryRun": dry,"overwrite": overwrite,"verbose": verbose,'checkInput':checkInput,
+            },
+            'dof_evaluation_high': {
+                'configurator':'dof_evaluation',
+                'in':{"input_dof":"dofs_extractedHigh",
+                'mode_evaluation_rec':'mode_evaluation_rec',
+                'mode_evaluation_lig':'mode_evaluation_lig'
+                    },
+                'out':{
+                    'out':'dof_evaluation_high'
                 },
                 'numModesRec': numModesRec,
                 'numModesLig': numModesLig,

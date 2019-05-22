@@ -9,6 +9,6 @@
     "dofBinary":"/home/glenn/Documents/Masterarbeit/git/Attract_benchmark/tools/systsearch",
     "python2Binary":"python2",
     "python3Binary" :"python",
-    "rmscaBinary":"/home/glenn/Documents/Masterarbeit/git/scripts/modes/rmsca",
+    "rmscaBinary":"/home/glenn/Documents/Masterarbeit/git/scripts/modes/rmsca_1",
     "strideBinary":"stride"
 }

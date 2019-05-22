@@ -7,10 +7,11 @@ import json
 import numpy as np
 import jsonpickle
 from collections import Counter
+from functools import reduce
 
 def runCommand(configuration, setting, command):
     if configuration.getSetting(setting)['verbose']:
-        print(command)
+        print("SETTING: ",setting.upper()," ", command)
     if not configuration.getSetting(setting)["dryRun"]:
         status = os.system(command)
         if status != 0: logging.warning("Failed to run " + command)
@@ -65,48 +66,117 @@ def modeFunction(config,setting):
     bash_command = "{} {}/modes.py {} {} > {} ".format(pythonBinary,toolPath, inPb, numModes, output)
     runCommand(config, setting,bash_command)
 
+def evalProtein(config, setting):
+    secondary_file = config.getInputFile(setting,'secondary')
+    output = config.getOutputFile(setting,'out')
+
+    if config.getSetting(setting)['verbose']:
+        print("SETTING: ",setting.upper()," evaluating protein for" , secondary_file)
+    if not config.getSetting(setting)["dryRun"]:
+        secLines = utils.getSecLines(utils.readFileToList(secondary_file))
+        area = 0
+        secondary , aminoAcids = [],[]
+        aa_area = {'LYS': 0, 'PRO': 0,'ILE': 0,'TRP': 0,'GLU': 0,'GLN': 0,'GLY': 0,'SER': 0,'PHE': 0,'HIS': 0,'TYR': 0,'LEU': 0,'ASP': 0,'ASN': 0,'ARG': 0,'THR': 0,'ALA': 0,'CYS': 0,'VAL': 0,'MET': 0}
+        sec_area = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+        for line in secLines:
+            a = float(line[9])
+            area += a
+            secondary.append(line[5])
+            aminoAcids.append(line[1])
+            aa_area[line[1]] += a
+            sec_area[line[5]] += a
+
+        area = np.asarray(area).sum()
+        aa = {'LYS': 0, 'PRO': 0,'ILE': 0,'TRP': 0,'GLU': 0,'GLN': 0,'GLY': 0,'SER': 0,'PHE': 0,'HIS': 0,'TYR': 0,'LEU': 0,'ASP': 0,'ASN': 0,'ARG': 0,'THR': 0,'ALA': 0,'CYS': 0,'VAL': 0,'MET': 0}
+        sec = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+
+        size = float(len(secondary))
+        for key, val in Counter(secondary).items():
+            sec[key] = val / size
+        for key, val in Counter(aminoAcids).items():
+            aa[key] = val / size
+
+        for key in aa_area.keys():
+            aa_area[key] /= area
+        for key in sec_area.keys():
+            sec_area[key] /= area
+        utils.saveToJson(output, {'secondary':sec, 'aminoAcids':aa, 'area': area, 'size':size, 'sec_area':sec_area,'aa_area':aa_area})
+
 #create modes evaluation 
 def modeEvalFunction(config,setting):
     pdb_bound = config.getInputFile(setting,'protein_bound')
     pdb_unbound = config.getInputFile(setting,'protein_unbound')
     mode_file = config.getInputFile(setting,'mode_file')
+    secondary_file = config.getInputFile(setting,'secondary')
     
     output = config.getOutputFile(setting,'out')
 
     if config.getSetting(setting)['verbose']:
-        print("evaluating modes for" ,mode_file)
-
+        print("SETTING: ",setting.upper()," evaluating modes for" ,mode_file, " and output to " , output)
     if not config.getSetting(setting)["dryRun"]:
-        bound_list = utils.readFileToList(pdb_bound)
-        unbound_list = utils.readFileToList(pdb_unbound)
+        try:
+            bound_list = utils.readFileToList(pdb_bound)
+            unbound_list = utils.readFileToList(pdb_unbound)
 
-        unbound_residues = utils.getResidueFromPDBlines(unbound_list)
-        
-        bound_CA = utils.getCAOnlyFromPDBLines(bound_list)
-        unbound_CA = utils.getCAOnlyFromPDBLines(unbound_list)
+            secondary = [line[5] for line in utils.getSecLines(utils.readFileToList(secondary_file))]
 
-        bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_CA)
-        unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_CA)
+            currid = None
+            #resMap = {}
+            indices = []
+            count = 0
+            for rid in utils.getResidueFromPDBlines(unbound_list):
+                if rid != currid:
+            #       resMap[rid] = count  
+                    indices.append(count)
+                    currid = rid
+                count += 1
+            #resMap = utils.getUniqueResIds(utils.getResidueFromPDBlines(unbound_list))
+            # indices = list(resMap.values())
+            # indices.sort()
+            
+            #print(indices)
 
+            bound_CA = utils.getCAOnlyFromPDBLines(bound_list)
+            unbound_CA = utils.getCAOnlyFromPDBLines(unbound_list)
+            unbound_residues = utils.getResidueNamesFromPDBlines(unbound_CA)
 
-   
-        modes = utils.read_modes(mode_file)
-        cumulative_overlap = 0
-        eval_dict = {}
-        for modeIdx, mode in modes.items(): 
-            ca_modes = utils.getCAModes(unbound_residues,mode['evec'])
-            overlap = utils.getOverlap (unbound_CA_pos,bound_CA_pos, ca_modes)
-            cumulative_overlap += overlap**2
-            contributionCA = utils.getModeContribution(bound_CA_pos - unbound_CA_pos, ca_modes).tolist()
-            norm = utils.getModeNorm(mode['evec'])
-            contribution = contributionCA * norm
-            magnitude = utils.getModeMagnitude(ca_modes)
-            maximaIndices = utils.getIndexMaxima(magnitude)
-            maxima = magnitude[maximaIndices]
-            eval_dict[modeIdx] = { 'overlap':overlap, 'cum_overlap': np.sqrt(cumulative_overlap),'eigenvalue':mode['eval'],'norm':norm,'contribution':contribution,'contribution_ca':contributionCA,'maxima_indices':maximaIndices.tolist(), 'maxima_values':maxima.tolist() }
+            bound_CA_pos = utils.getCoordinatesFromPDBlines(bound_CA)
+            unbound_CA_pos = utils.getCoordinatesFromPDBlines(unbound_CA)
+    
+            modes = utils.read_modes(mode_file)
+            cumulative_overlap = 0
+            eval_dict = {}
+            for modeIdx, mode in modes.items(): 
+                #ca_modes = utils.getCAModes(unbound_residues,mode['evec'])
+                ca_modes =  [mode['evec'][idx] for idx in indices]
+                area_aa = {'LYS': 0, 'PRO': 0,'ILE': 0,'TRP': 0,'GLU': 0,'GLN': 0,'GLY': 0,'SER': 0,'PHE': 0,'HIS': 0,'TYR': 0,'LEU': 0,'ASP': 0,'ASN': 0,'ARG': 0,'THR': 0,'ALA': 0,'CYS': 0,'VAL': 0,'MET': 0}
+                area_sec= {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
+                integral = 0
+                for i, vec in enumerate(ca_modes):
+                    ampl = vec[0]**2 + vec[1]**2 + vec[2]**2 
+                    integral += ampl
+                    area_aa[unbound_residues[i]] += ampl
+                    area_sec[secondary[i]] += ampl
 
-        utils.saveToJson(output, {'bound':pdb_bound, 'unbound':pdb_unbound, 'mode_file':mode_file, 'modes': eval_dict})
+                for key in    area_aa.keys():
+                    area_aa[key] /= integral
+                for key in    area_sec.keys():
+                    area_sec[key] /= integral
 
+                overlap = utils.getOverlap (unbound_CA_pos,bound_CA_pos, ca_modes)
+                cumulative_overlap += overlap**2
+                contributionCA = utils.getModeContribution(bound_CA_pos - unbound_CA_pos, ca_modes).tolist()
+                norm = utils.getModeNorm(mode['evec'])
+                contribution = contributionCA * norm
+                magnitude = utils.getModeMagnitude(ca_modes)
+                maximaIndices = utils.getIndexMaxima(magnitude)
+                maxima = magnitude[maximaIndices]
+                eval_dict[modeIdx] = { 'overlap':overlap, 'cum_overlap': np.sqrt(cumulative_overlap),'eigenvalue':mode['eval'],'norm':norm,'contribution':contribution,'contribution_ca':contributionCA,'maxima_indices':maximaIndices.tolist(), 'maxima_values':maxima.tolist(), 'area_aa':area_aa, 'area_sec':area_sec }
+
+            utils.saveToJson(output, {'bound':pdb_bound, 'unbound':pdb_unbound, 'mode_file':mode_file, 'modes': eval_dict})
+        except:
+            print("filed to evaluate protein", pdb_unbound)
+            pass
 
 def createBoundModesFunction(config,setting):
     pdb_bound = config.getInputFile(setting,'protein_bound')
@@ -114,7 +184,7 @@ def createBoundModesFunction(config,setting):
 
     output = config.getOutputFile(setting,'out')
     if config.getSetting(setting)['verbose']:
-        print("Create bound modes for " + pdb_unbound)
+        print("SETTING: ",setting.upper()," Create bound modes for " + pdb_unbound +" and " +pdb_bound + " and output to " + output)
     if not config.getSetting(setting)["dryRun"]:
         bound_list = utils.readFileToList(pdb_bound)
         unbound_list = utils.readFileToList(pdb_unbound)
@@ -137,7 +207,7 @@ def manipulateModesFunction(config,setting):
     output = config.getOutputFile(setting,'out')
     settings = config.getSetting(setting)
     if config.getSetting(setting)['verbose']:
-        print("Manipulating modes for" ,mode_file)
+        print("SETTING: ",setting.upper()," Manipulating modes for" ,mode_file, " and output to " + output)
     if not config.getSetting(setting)["dryRun"]:
         pdb_list = utils.readFileToList(pdb)    
         resIndices = utils.getResidueIndicesFromPDBLines(pdb_list)   
@@ -240,7 +310,8 @@ def dockingFunction(config,setting):
     if len(devices) > 0:
         for d in devices:
             d_string += " -d {}".format(d)
-
+    if dockSettings['modesOnly']:
+        d_string += " --minmodesonly 1 "
     mode_string = ""
     if dockSettings["numModesRec"] > 0 or dockSettings["numModesLig"] > 0 :
         mode_string = "--numModesRec {} --numModesLig {} --modesr {} --modesl {} --evscale {}".format(dockSettings["numModesRec"],dockSettings["numModesLig"], modesRec, modesLig, dockSettings['evScale'])
@@ -414,7 +485,7 @@ def saveSettings(config, setting):
     """ saves the configuration to the specified filename"""
     configFilename = config.getOutputFile(setting, 'out')
     if config.getSetting(setting)['verbose']:
-        print("saving configFile to " + configFilename)
+        print("SETTING: ",setting.upper()," saving configFile to " + configFilename)
     if not config.getSetting(setting)["dryRun"]:
         config.save(configFilename)
 
@@ -425,7 +496,7 @@ def FindTermini(config, setting):
     cutoff =                        cutSetting[             'cutoff']
 
     if config.getSetting(setting)['verbose']:
-        print("Find Termini from  " + inputPdb)
+        print("SETTING: ",setting.upper()," Find Termini from  " + inputPdb + " and output to "  + looseTerminiLog)
     if not config.getSetting(setting)["dryRun"]:
         # log = utils.findAndCutLooseTermini(inputPdb, cutPdb, cutoff)
         log = utils.FindLooseTermini(inputPdb, cutoff=cutoff)
@@ -440,10 +511,11 @@ def cutTermini(config, setting):
     cutPdb = config.getOutputFile(setting,      "out")
 
     if config.getSetting(setting)['verbose']:
-        print("Cut Termini from  " + inputPdb + " and output to " + cutPdb)
+        print("SETTING: ",setting.upper()," Cut Termini from  " + inputPdb + ' with '+ cutlog +  " and output to " + cutPdb)
     if not config.getSetting(setting)["dryRun"]:
         log = utils.loadFromJson(cutlog)
         residues = log['looseTerminiFront'] + log['looseTerminiBack']
+        #print(residues)
         pdblines = utils.readFileToList(inputPdb)
         utils.cutTerminiAndWriteToPdb(residues,pdblines, cutPdb)
 
@@ -456,60 +528,29 @@ def CreateSecondary(config, setting):
     bash_command ="stride {} > {}".format(inputPdb, secdondaryFile)
     runCommand(config, setting, bash_command)
 
+
+
 def GetInterface(config, setting):
-    #receptor = config.getInputFile(setting, 'receptor')
-    #ligand = config.getInputFile(setting,'ligand')
-    pdb = config.getInputFile(setting,              'pdb')
-    interfaceFile = config.getOutputFile(setting,   'out')
-    receptor_filename  = config.getInputFile(setting,              'receptor')
-    ligand_filename  = config.getInputFile(setting,              'ligand')
-    receptorSec_filename  = config.getInputFile(setting,              'receptorSec')
-    ligandSec_filename  = config.getInputFile(setting,              'ligandSec')
-
-
+    pdb = config.getInputFile(setting,                  'pdb')
+    interfaceFile = config.getOutputFile(setting,       'out')
+    receptor_filename  = config.getInputFile(setting,   'receptor')
+    ligand_filename  = config.getInputFile(setting,     'ligand')
+    receptorSec_filename  = config.getInputFile(setting,'receptorSec')
+    ligandSec_filename  = config.getInputFile(setting,  'ligandSec')
 
     cutoff = config.getSetting(setting)['cutoff']
 
     if config.getSetting(setting)['verbose']:
-        print("Get interface from pdb " + pdb )
+        print("SETTING: ",setting.upper()," Get interface from pdb " + pdb )
     if not config.getSetting(setting)["dryRun"]:
         try:
             receptorSec =   utils.getSecLines(utils.readFileToList(receptorSec_filename))
             ligandSec = utils.getSecLines(utils.readFileToList(ligandSec_filename))
-            receptorLines = utils.readFileToList(receptor_filename)
-            ligandLines = utils.readFileToList(ligand_filename)
-            recResIds = utils.getResidueFromPDBlines(receptorLines)
-            ligResIds = utils.getResidueFromPDBlines(ligandLines)
-            recResIndices = utils.getResidueIndicesFromPDBLines(receptorLines)
-            ligResIndices = utils.getResidueIndicesFromPDBLines(ligandLines)
 
-            # recResiduesAA = utils.getResidueNamesFromPDBlines(receptorLines)
-            # ligResiduesAA = utils.getResidueNamesFromPDBlines(ligandLines)
-            # recmap = {}
-            # ligmap = {}
-            # for  recId, i in zip(recResIds, recResIndices):
-            #     recmap[recId] = i
-            # for  ligId, i in zip(ligResIds, ligResIndices):
-            #     ligmap[ligId] = i
-            currid = None
-            recmap = {}
-            count = 0
-            for rid in recResIds:
-                if rid != currid:
-                    recmap[rid] = count  
-                    currid = rid
-                    count += 1
-            currid = None
-            ligmap = {}
-            count = 0
-            for lid in ligResIds:
-                if lid != currid:
-                    ligmap[lid] = count  
-                    currid = lid
-                    count += 1
-
-            # print (recmap)
+            recmap = utils.getUniqueResIds(utils.getResidueFromPDBlines(utils.readFileToList(receptor_filename)))
+            ligmap = utils.getUniqueResIds(utils.getResidueFromPDBlines(utils.readFileToList(ligand_filename)))
             structures = utils.parseBIOPdbToStructure(pdb)
+
             interfaces = []
             if len(structures) > 0:
                 for struct in structures:
@@ -526,9 +567,6 @@ def GetInterface(config, setting):
 
                         interfaceRecIndices = [recmap[key] for key in recinterfaceResidues ]
                         interfaceLigIndices = [ligmap[key] for key in liginterfaceResidues ]
-                        
-                        # AARec = [receptorSec[i][1] for i in interfaceRecIndices ]
-                        # AALig = [ligandSec[i][1] for i in interfaceLigIndices ]
 
                         isecRec = []
                         AARec = []
@@ -548,19 +586,15 @@ def GetInterface(config, setting):
                             AALig.append(line[1])
                             areaLig += float(line[9])
 
-                        AARecCount = {}
+                        AARecCount = {'LYS': 0, 'PRO': 0,'ILE': 0,'TRP': 0,'GLU': 0,'GLN': 0,'GLY': 0,'SER': 0,'PHE': 0,'HIS': 0,'TYR': 0,'LEU': 0,'ASP': 0,'ASN': 0,'ARG': 0,'THR': 0,'ALA': 0,'CYS': 0,'VAL': 0,'MET': 0}
                         aalen = float(len(AARec))
                         for key, value in Counter(AARec).items():
                             AARecCount[key] = value / aalen
 
-                        AALigCount = {}
+                        AALigCount = {'LYS': 0, 'PRO': 0,'ILE': 0,'TRP': 0,'GLU': 0,'GLN': 0,'GLY': 0,'SER': 0,'PHE': 0,'HIS': 0,'TYR': 0,'LEU': 0,'ASP': 0,'ASN': 0,'ARG': 0,'THR': 0,'ALA': 0,'CYS': 0,'VAL': 0,'MET': 0}
                         aalen = float(len(AALig))
                         for key, value in Counter(AALig).items():
                             AALigCount[key] = value / aalen
-
-                        
-                        # isecRec= [receptorSec[i][5] for i in interfaceRecIndices ]
-                        # isecLig = [ligandSec[i][5] for i in interfaceLigIndices ]
 
                         countSecRec = {'C': 0, 'E': 0, 'B': 0, 'T': 0, 'H': 0, 'G': 0, 'b': 0}
                         lenSec = float(len(isecRec))
@@ -590,13 +624,14 @@ def GetInterface(config, setting):
         except:
             print("eval interface: FAILED",interfaceFile )
             pass
+
 def SuperimposeStructures(config, setting):
     inputPdb = config.getInputFile(setting, "pdb")
     refPdb = config.getInputFile(setting, "refpdb")
     superPdb = config.getOutputFile(setting, "out")
     
     if config.getSetting(setting)['verbose']:
-        print("Superimpose pdb " + inputPdb )
+        print("SETTING: ",setting.upper()," Superimpose pdb " + inputPdb + " and output to " + superPdb )
     if not config.getSetting(setting)["dryRun"]:
         utils.superimposePdb(inputPdb, refPdb, superPdb)
 
@@ -605,7 +640,7 @@ def SuperimposeStructures(config, setting):
 def evaluateModeDOFS(config, setting):
     input_dof_file = config.getInputFile(setting, "input_dof")
     mode_evaluation_rec = config.getInputFile(setting, "mode_evaluation_rec")
-    mode_evaluation_lig = config.getInputFile(setting, "mode_evaluation_rec")
+    mode_evaluation_lig = config.getInputFile(setting, "mode_evaluation_lig")
     output = config.getOutputFile(setting,"out")
     
     dof_eval_settings = config.getSetting(setting)
@@ -614,7 +649,7 @@ def evaluateModeDOFS(config, setting):
     numModesLig = dof_eval_settings['numModesLig']
 
     if config.getSetting(setting)['verbose']:
-        print("evaluating dofs for" , input_dof_file)
+        print("SETTING: ",setting.upper()," evaluating dofs for" , input_dof_file, ' and output to ' , output)
     if not config.getSetting(setting)["dryRun"]:
         dof_dict = utils.read_Dof(input_dof_file)
         sorted_keys = np.sort(np.asarray(list(dof_dict.keys()),dtype=np.int))
@@ -663,7 +698,7 @@ def prunePDB(config, setting):
 
 
     if config.getSetting(setting)['verbose']:
-        print("pruning pdb: " , inputPdb)
+        print("SETTING: ",setting.upper()," pruning pdb: " , inputPdb, " and output to "  + output)
     if not config.getSetting(setting)["dryRun"]:
         currId = ""
         pdb_lines = utils.readFileToList(inputPdb)
@@ -699,7 +734,7 @@ def extraxtDofs(config, setting):
     maxDof = config.getSetting(setting)['maxDof']
 
     if config.getSetting(setting)['verbose']:
-        print("extracting dofs pdb: " , input_dofs)
+        print("SETTING: ",setting.upper()," extracting dofs pdb: " , input_dofs)
 
     if not config.getSetting(setting)["dryRun"]:
         if operatorType == 'max':
@@ -844,5 +879,6 @@ configuratorFunctions = {
     'dof_test':     createTestDof,
     'mode_manipulate':manipulateModesFunction,
     'prune':        prunePDB,
-    'dof_extraction':extraxtDofs
+    'dof_extraction':extraxtDofs,
+    'protein_evaluation':evalProtein
     }

@@ -7,6 +7,10 @@ import math
 from datetime import datetime
 import sys
 
+
+F = False
+T = True
+
 protType =      "unbound"
 protTypeRef =   "refe"
 pathfile =      "paths_local.json"
@@ -18,143 +22,120 @@ protlist_file = basePath + "/protlist"
 dry = False
 verbose = True
 overwrite = False
-save_consoleOutput = True
+save_consoleOutput = T
 
 configs = [
-
-{"numModesRec":0,  "numModesLig":0, "scale": 1, 'prune': False, 'cut':False,
-'bound':False, 'boundModes':False,'singleDof', 'manipulateModes':False, 
-'overwrite': False, 'extension':'_hin99'},
-
+{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99_7'},
+{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':F,'cut':T,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_cut1'},
+{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':T,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_pruned1'},
+{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':T,'cut':T,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_cut_pruned1'},
 ]
 
-#create Modes, coarse grain Proteins and alphabet files
-singleConfiguration_01 = [
-    {
-    'conf': [ 
-        {'setting': 'findtermini',  'configurator': 'findtermini'},
-        {'setting': 'cut',          'configurator': 'cut'},
-        {'setting': 'allAtom',      'configurator': 'allAtom'},
-        {'setting': 'reduce',       'configurator': 'reduce'},
-        {'setting': 'heavy',        'configurator': 'heavy'},
-        {'setting': 'prune',        'configurator': 'prune'},
-        {'setting': 'modes',        'configurator': 'modes'},
-        {'setting': 'modes_heavy',  'configurator': 'modes'},
-        {'setting': 'bound_mode',        'configurator':'bound_mode'},
-        {'setting': 'bound_mode_heavy',        'configurator':'bound_mode'},
-        {'setting': 'alphabet',     'configurator': 'alphabet'},
-        {'setting': 'secondary',    'configurator': 'secondary'},
-        {'setting': 'mode_manipulate','configurator': 'mode_manipulate'},
-        {'setting': 'mode_manipulate_heavy','configurator': 'mode_manipulate'},
-        {'setting': 'saveSettings', 'configurator': 'saveSettings'},
-        { 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
-        ],
-    'numThreads': 1}
-]
+with open(basePath + "/configs_{}.json".format(str(datetime.now())), "w") as write_file:
+    json.dump({'configs':configs,'description': "recalculate the mode evaluation for the receptor modes (bound)."}, write_file, indent=4)
 
-singleConfigurationRef = [
-    {'conf':[
-        { 'setting': 'cut' ,        'configurator': 'cut'},
-        { 'setting': 'superimpose' ,'configurator': 'superimpose'},
-        { 'setting': 'allAtom' ,    'configurator': 'allAtom'},
-        { 'setting': 'reduce' ,     'configurator': 'reduce'},
-        { 'setting': 'heavy' ,     'configurator':  'heavy'},
-        { 'setting': 'saveSettings','configurator': 'saveSettings'} ,
-        ] ,
-    'numThreads': 2}
-]
-
-#create Grids. this has to be a seperate step since the alphabet file of the partner is needed
-singleConfiguration_02 = [
-    {'conf':
-        { 'setting': 'grid',        'configurator':'grid'},
-    'numThreads': 1}
-]
-
-modeEvaluation = [
-    {'conf':
-        [
-        { 'setting': 'mode_evaluation',        'configurator':'mode_evaluation'},
-       # { 'setting': 'bound_mode',        'configurator':'bound_mode'}
-        ],
-    'numThreads': 1}
-]
-
-#All files are created which needed receptor and ligand
-pairConfiguration = [
-    {'conf':
-        [
-       #{ 'setting' : 'dof_test',    'configurator': 'dof_test'},
-        { 'setting': 'dof',         'configurator': 'dof'},
-        { 'setting': 'joinModes',   'configurator': 'joinModes'} ,
-        { 'setting': 'joinModes_heavy',   'configurator': 'joinModes'} 
-        ], 
-    'numThreads':1
-    }
-]
-
-#perform docking and scoring as well analysis
-runConfiguration = [
-    {'conf':
-        { 'setting':'docking',     'configurator':'docking'},
-    'numThreads': 1},
-    {'conf':
-         { 'setting':'scoring','configurator':'scoring'},
-     'numThreads':2},
-    {'conf':[
-        { 'setting': 'fill_energy',     'configurator': 'fill_energy'  },
-        { 'setting': 'sorting',         'configurator': 'sorting'      },
-        { 'setting': 'deredundant',     'configurator': 'deredundant'  },
-        { 'setting': 'top',             'configurator': 'top'          },
-        { 'setting': 'demode',          'configurator': 'demode'       },
-        { 'setting': 'irmsd',           'configurator': 'irmsd'        },
-        ##{ 'setting': 'irmsd_nomodes',   'configurator': 'irmsd'        },
-        { 'setting': 'rmsd',            'configurator': 'rmsd'          },
-       # { 'setting': 'rmsd_unsorted',   'configurator': 'rmsd'          },
-        ##{ 'setting': 'rmsd_nomodes',    'configurator': 'rmsd'         },
-        { 'setting': 'fnat',            'configurator': 'fnat'          },
-        ##{ 'setting': 'fnat_nomodes',    'configurator': 'fnat'         },
-        { 'setting': 'saveSettings',    'configurator': 'saveSettings'  },
-        { 'setting': 'collect'  ,       'configurator': 'collect'    },
-        { 'setting': 'dof_evaluation',  'configurator': 'dof_evaluation'},
-        { 'setting': 'dof_extractionLow',  'configurator': 'dof_extraction'},
-        { 'setting': 'dof_extractionHigh',  'configurator': 'dof_extraction'},
-        { 'setting': 'collect_Low'  ,       'configurator': 'collect'    },
-        { 'setting': 'collect_High'  ,       'configurator': 'collect'    },
-        #{ 'setting': 'interface',       'configurator':'interface'},
-        { 'setting': 'interface_low',       'configurator':'interface'},
-        { 'setting': 'interface_high',       'configurator':'interface'}
-                ],
-    'numThreads': 4}
-    ]
-
-
-deleted_proteins = ['1BJ1', '1FSK', '1IQD', '1K4C', '1KXQ', '1NCA', '1NSN', '1QFW', '2HMI', '2JEL', '9QFW','1DE4','4FQI','4GAM','4GXU','1EXB','4FQI', '1EER','4H30' ,'2OOB','1N2C']
-
-proteins =[]
-with open(protlist_file ,'r') as f:
-    lines = f.readlines()
-    for line in lines:
-        proteins.append(line.split()[0])
+deleted_proteins = ['1I9R','1BJ1', '1FSK', '1IQD', '1K4C', '1KXQ', '1NCA', '1NSN', '1QFW', '2HMI', '2JEL', '9QFW','1DE4','4FQI','4GAM','4GXU','1EXB','4FQI', '1EER','4H30' ,'2OOB','1N2C']
+proteins = [line.split()[0].strip() for line in open(protlist_file ,'r').readlines() ]
 try:
     for dele in deleted_proteins:
         proteins.remove(dele)
 except:
     pass
-# proteins =[ 
-# '7CEI',
-#  '1AHW',
-#  '1AK4',
-#  '1AKJ',
-#  '1ATN',
-#  '1AVX',
-#  '1B6C',
-#   '3MXW'
+
+#proteins =[ 
+#'7CEI',
+#'1AHW',
+#'1AK4',
+#'1AKJ',
+#'1ATN',
+#'1AVX',
+#'1B6C',
+#'3MXW'
 #]
+
+#create Modes, coarse grain Proteins and alphabet files
+singleConfiguration_01 = [{'conf': [ 
+        {'setting': 'superimpose' ,         'configurator': 'superimpose'},
+        {'setting': 'findtermini',          'configurator': 'findtermini'},
+        {'setting': 'cut',                  'configurator': 'cut'},
+        {'setting': 'allAtom',              'configurator': 'allAtom'},
+        {'setting': 'reduce',               'configurator': 'reduce'},
+        {'setting': 'heavy',                'configurator': 'heavy'},
+        {'setting': 'prune',                'configurator': 'prune'},
+        {'setting': 'modes',                'configurator': 'modes'},
+        {'setting': 'modes_heavy',          'configurator': 'modes'},
+        {'setting': 'alphabet',             'configurator': 'alphabet'},
+        {'setting': 'secondary',            'configurator': 'secondary'},
+        {'setting': 'mode_manipulate',      'configurator': 'mode_manipulate'},
+        {'setting': 'mode_manipulate_heavy','configurator': 'mode_manipulate'},
+        {'setting': 'saveSettings',         'configurator': 'saveSettings'},
+        {'setting': 'protein_evaluation',   'configurator': 'protein_evaluation'},
+        ],'numThreads': 8}]
+
+singleConfigurationRef = [{'conf':[
+        { 'setting': 'cut' ,                'configurator': 'cut'},
+        #{ 'setting': 'superimpose' ,        'configurator': 'superimpose'},
+        { 'setting': 'allAtom' ,            'configurator': 'allAtom'},
+        { 'setting': 'reduce' ,             'configurator': 'reduce'},
+        { 'setting': 'heavy' ,              'configurator':  'heavy'},
+        { 'setting': 'saveSettings',        'configurator': 'saveSettings'} ,
+        {'setting': 'prune',                'configurator': 'prune'},
+        ] , 'numThreads': 8}
+]
+#create Grids. this has to be a seperate step since the alphabet file of the partner is needed
+singleConfiguration_02 = [ {'conf':[
+        {'setting': 'bound_mode',           'configurator': 'bound_mode'},
+        {'setting': 'bound_mode_heavy',     'configurator': 'bound_mode'},
+        {'setting': 'mode_evaluation',      'configurator': 'mode_evaluation'},
+        { 'setting': 'grid',                'configurator':'grid'}
+        ],'numThreads': 2}
+]
+#All files are created which needed receptor and ligand
+pairConfiguration = [{'conf':[
+       { 'setting' : 'dof_test',           'configurator': 'dof_test'      },
+        { 'setting': 'dof',                 'configurator': 'dof'           },
+        { 'setting': 'joinModes',           'configurator': 'joinModes'     },
+        { 'setting': 'joinModes_heavy',     'configurator': 'joinModes'     } 
+        ],'numThreads':8}
+]
+#perform docking and scoring as well analysis
+runConfiguration = [ {'conf':
+         { 'setting':'docking',              'configurator':'docking'},
+     'numThreads': 1},
+     {'conf':
+         { 'setting':'scoring',             'configurator':'scoring'},
+      'numThreads':2},
+    {'conf':[
+        { 'setting': 'fill_energy',         'configurator': 'fill_energy'   },
+        { 'setting': 'sorting',             'configurator': 'sorting'       },
+        { 'setting': 'deredundant',         'configurator': 'deredundant'   },
+        { 'setting': 'top',                 'configurator': 'top'           },
+        { 'setting': 'demode',              'configurator': 'demode'        },
+        { 'setting': 'irmsd',               'configurator': 'irmsd'         },
+        ###{ 'setting': 'irmsd_nomodes',     'configurator': 'irmsd'         },
+        { 'setting': 'rmsd',                'configurator': 'rmsd'          },
+        ## { 'setting': 'rmsd_unsorted',      'configurator': 'rmsd'          },
+        ##{ 'setting': 'rmsd_nomodes',      'configurator': 'rmsd'          },
+        { 'setting': 'fnat',                'configurator': 'fnat'          },
+        ###{ 'setting': 'fnat_nomodes',      'configurator': 'fnat'          },
+        { 'setting': 'saveSettings',        'configurator': 'saveSettings'  },
+        { 'setting': 'collect'  ,           'configurator': 'collect'       },
+         { 'setting': 'dof_evaluation',      'configurator': 'dof_evaluation'},
+        { 'setting': 'dof_extractionLow',   'configurator': 'dof_extraction'},
+        { 'setting': 'dof_extractionHigh',  'configurator': 'dof_extraction'},
+         { 'setting': 'dof_evaluation_low',  'configurator': 'dof_evaluation'},
+         { 'setting': 'dof_evaluation_high', 'configurator': 'dof_evaluation'},
+        { 'setting': 'collect_Low'  ,       'configurator': 'collect'       },
+        { 'setting': 'collect_High'  ,      'configurator': 'collect'       },
+        ##{ 'setting': 'interface',          'configurator':'interface'      },
+        { 'setting': 'interface_low',       'configurator':'interface'      },
+        { 'setting': 'interface_high',      'configurator':'interface'      }
+    ],'numThreads': 4}
+    ]
 
 bufferSize = 4*len(proteins) * len(configs)
 prefix = "00_"
-for i,c in enumerate (configs):
+for i,c in enumerate (configs[:1]):
     prefix += "_BM{}_mr{}ml{}s{}_{}".format(i, c['numModesRec'], c['numModesLig'], c['scale'],c['extension'])
 
 
@@ -162,7 +143,7 @@ createLoggingFile(basePath+"/{}_loggingFile_{}.log".format(prefix,str(datetime.n
 consoleOutputFile = basePath+"/{}_ConsoleOutput_{}.log".format(prefix,str(datetime.now().date()))
 if save_consoleOutput:
     sys.stdout = open(consoleOutputFile, 'w')
-
+#proteins = ['3MXW']
 
 num = len(proteins) * len(configs)
 #configure receptor and ligand in two steps
@@ -190,11 +171,13 @@ for i,config in enumerate(configs):
     use_manipulated = config['manipulateModes']
     extension = config['extension']
     modeType = "hin99"
+    protType = 'unbound'
+    protTypeRef = 'refe'
     if use_bound:
         protType = 'refe'
     if use_cut:
-        protType += "-cut"
-        protTypeRef += "-cut"
+        protType = "unbound-cut"
+        protTypeRef = "refe-cut"
     if use_boundModes:
         modeType = "bound"
     if use_manipulated:
@@ -210,7 +193,7 @@ for i,config in enumerate(configs):
     scale = config['scale']
 
     frac, whole = math.modf(scale)
-    bm = "bm_dG_mr{}_ml{}_s{}p{}_sO_c50_mr{}_ml{}_s{}p{}{}".format(numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],extension)
+    bm = "02_bm_dG_mr{}_ml{}_s{}p{}_sO_c50_mr{}_ml{}_s{}p{}{}".format(numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],numModesRec, numModesLig, int(whole),'{:6f}'.format(frac)[2:],extension)
     print(" START NEW BENCHMARK NUMBER {} mr{} ml{} scale{} name {}".format(i,numModesRec,numModesLig, scale,bm))
         
     print("Create configrations".upper())
@@ -261,11 +244,22 @@ for i,config in enumerate(configs):
             deviceIds = [0,1], evScale=scale,
             modeType = modeType))
 
-        receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
-        ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
+        #receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
+        #ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
 
-        receptorRefConfig.files['refpdb']   = receptorConfig.files['pdb'] 
-        ligandRefConfig.files['refpdb']     =   ligandConfig.files['pdb'] 
+
+        receptorConfig.settings['cut']['in']['pdb'] =    'superimpose'
+        ligandConfig.settings['cut']['in']['pdb']   =    'superimpose'
+
+        receptorConfig.settings['allAtom']['in']['protein'] =    'superimpose'
+        ligandConfig.settings['allAtom']['in']['protein']   =    'superimpose'
+
+        # receptorRefConfig.files['refpdb']   = receptorConfig.files['pdb'] 
+        # ligandRefConfig.files['refpdb']     =   ligandConfig.files['pdb'] 
+
+        receptorConfig.files['refpdb']   = receptorRefConfig.files['pdb'] 
+        ligandConfig.files['refpdb']     =   ligandRefConfig.files['pdb'] 
+
 
         receptorRefConfig.files['cutlog']   = receptorConfig.files['cutlog'] 
         ligandRefConfig.files['cutlog']     = ligandConfig.files['cutlog'] 
@@ -311,8 +305,21 @@ for i,config in enumerate(configs):
         if use_cut:
             receptorConfig.files['pdb']['name'] = '{}{}-{}'.format(protein, "A","unbound")
             ligandConfig.files['pdb']['name'] = '{}{}-{}'.format(protein, "B","unbound")
+
+            receptorConfig.files['superimpose']['name'] = '{}{}-{}'.format(protein, "A","unbound")
+            ligandConfig.files['superimpose']['name'] = '{}{}-{}'.format(protein, "B","unbound")
+
+            receptorConfig.files['cutlog']['name'] = '{}{}-{}'.format(protein, "A","unbound")
+            ligandConfig.files['cutlog']['name'] = '{}{}-{}'.format(protein, "B","unbound")
+
+            receptorConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "A","unbound")
+            ligandConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","unbound")
+
             receptorRefConfig.files['pdb']['name'] = '{}{}-{}'.format(protein, "A","refe")
             ligandRefConfig.files['pdb']['name'] = '{}{}-{}'.format(protein, "B","refe")
+
+            receptorRefConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "A","refe")
+            ligandRefConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","refe")
 
             receptorConfig.settings['allAtom']['in']['protein']  = 'cut'
             ligandConfig.settings['allAtom']['in']['protein'] = 'cut'
@@ -323,14 +330,17 @@ for i,config in enumerate(configs):
             receptorRefConfig.files['cut']['name']  = '{}{}-{}'.format(protein, "A","refe")
             ligandRefConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","refe")
             
-            receptorRefConfig.settings['superimpose']['in']['pdb'] =    'cut'
-            ligandRefConfig.settings['superimpose']['in']['pdb'] =      'cut'
+            # receptorRefConfig.settings['superimpose']['in']['pdb'] =    'cut'
+            # ligandRefConfig.settings['superimpose']['in']['pdb'] =      'cut'
             
-            receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
-            ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
+            receptorRefConfig.settings['allAtom']['in']['protein'] =    'cut'
+            ligandRefConfig.settings['allAtom']['in']['protein'] =      'cut'
             
-            receptorRefConfig.files['refpdb'] = receptorConfig.files['cut'] 
-            ligandRefConfig.files['refpdb'] =   ligandConfig.files['cut'] 
+            #receptorRefConfig.files['refpdb'] = receptorConfig.files['cut'] 
+            #ligandRefConfig.files['refpdb'] =   ligandConfig.files['cut'] 
+
+            # receptorConfig.files['refpdb'] = receptorRefConfig.files['cut'] 
+            # ligandConfig.files['refpdb'] =   ligandRefConfig.files['cut'] 
 
             receptorRefConfig.files['cutlog'] = receptorConfig.files['cutlog'] 
             ligandRefConfig.files['cutlog'] = ligandConfig.files['cutlog'] 
@@ -344,8 +354,12 @@ for i,config in enumerate(configs):
             pairFiles['receptor'] =             receptorConfig.files['prune']
             pairFiles['ligand'] =             ligandConfig.files['prune']
 
+            pairFiles['receptorRef'] =             receptorRefConfig.files['prune']
+            pairFiles['ligandRef'] =             ligandRefConfig.files['prune']
+
             receptorConfig.files['grid']['extension']  = "-grid-pruned.grid"
             ligandConfig.files['grid']['extension']  = "-grid-pruned.grid"
+            receptorConfig.settings['grid']['in']['protein']  = 'prune'
             ligandConfig.settings['grid']['in']['protein']  = 'prune'
 
             # receptorConfig.settings['modes']['in']['protein']  = 'prune'
@@ -353,6 +367,8 @@ for i,config in enumerate(configs):
 
             pairFiles['gridRec'] =      receptorConfig.files['grid']
             pairFiles['gridLig'] =      ligandConfig.files['grid']
+            pairFiles['dof']["extension"] =     "-dof-pruned.dat"
+            pairFiles['dof_test']["extension"] =     "-dof_test-pruned.dat"
 
         if use_boundModes:
             # ligandConfig.files['modes'] = ligandConfig.files['bound_modes']
@@ -369,6 +385,7 @@ for i,config in enumerate(configs):
             pairFiles['modesRec'] =     receptorConfig.files['bound_modes']
             pairFiles['modesLig'] =     ligandConfig.files['bound_modes']
 
+        
 
         if use_singleDof:
             pairConfig.settings['docking']['in']['dof'] = 'dof_test'
@@ -394,6 +411,31 @@ for i,config in enumerate(configs):
             pairFiles['modesLig'] =     ligandConfig.files['modes_manipulate']        
             pairFiles['modesRec_heavy'] =     receptorConfig.files['modes_manipulate_heavy']
             pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
+            pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
+            pairFiles['joinedModes']['extension'] = "-joinedModes-r{}-l{}-{}.dat".format(20,20,'manipulated')
+            pairFiles['joinedModes_heavy']['extension'] = "-joinedModes-heavy-r{}-l{}-{}.dat".format(20,20,'manipulated')
+
+        # pairConfig.settings['interface_low']['overwrite'] = True
+        # pairConfig.settings['interface_high']['overwrite'] = True
+        # receptorConfig.settings['mode_evaluation']['overwrite'] = True
+        # ligandConfig.settings['mode_evaluation']['overwrite'] = True
+        # receptorConfig.settings['protein_evaluation']['overwrite'] = True
+        # ligandConfig.settings['protein_evaluation']['overwrite'] = True
+
+
+        if config['rigidStart']:
+            pairFiles['rigidStart'] = {}
+            pairFiles['rigidStart']['folder'] = "bm_dG_mr0_ml0_s1p000000_sO_c50_mr0_ml0_s1p000000_hin99/result"
+            pairFiles['rigidStart']['name'] = "{}".format(protein)
+            pairFiles['rigidStart']['extension'] = "-unbound-docking.dat"
+            pairConfig.settings['docking']['in']['dof'] = 'rigidStart'
+
+        if config['modesOnly']:
+            pairConfig.settings['docking']['modesOnly'] = True
+
+        #pairConfig.settings['dof_evaluation_low']['overwrite'] = True
+        #pairConfig.settings['dof_evaluation_high']['overwrite'] = True
+        #pairConfig.settings['dof_evaluation']['overwrite'] = True
 
         pipelineRec.put((copy.deepcopy(     receptorConfig),protein))         
         pipelineLig.put((copy.deepcopy(     ligandConfig),protein))                  
@@ -412,6 +454,7 @@ pipelineRec.start()
 pipelineLig.start()
 pipelineRec.join()
 pipelineLig.join()
+
 
 print("\n DO REFERENCE CONFIGURATION")
 logging.warning("\n\n---------------------DO REFERENCE CONFIGURATION---------------------\n")
@@ -435,60 +478,280 @@ logging.warning("\n\n---------------------DO PAIR CONFIGURATION-----------------
 pipelinePairConfig.start()
 pipelinePairConfig.join()
 
-print("\nDO RUN")
-logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
+# print("\nDO RUN")
+# logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
 
-pipelinePairRun.start()
-pipelinePairRun.join()
-
-
-
-
-
-    # inputRecQ = queue.Queue(bufferSize)
-    # inputLigQ = queue.Queue(bufferSize)
-    # inputRecQ_2 = queue.Queue(bufferSize)
-    # inputLigQ_2 = queue.Queue(bufferSize)
-    # inputRecRefQ = queue.Queue(bufferSize)
-    # inputLigRefQ = queue.Queue(bufferSize)
-    # outputRecRefQ = queue.Queue(bufferSize)
-    # outputLigRefQ = queue.Queue(bufferSize)
-
-    # outputRecQ = queue.Queue(bufferSize)
-    # outputLigQ = queue.Queue(bufferSize)
-
-    # outputRecQ2 = queue.Queue(bufferSize)
-    # outputLigQ2 = queue.Queue(bufferSize)
-
-    # pairQ = queue.Queue(bufferSize)
-    # pairQOutConfig = queue.Queue(bufferSize)
-    # pairQOutRes = queue.Queue(bufferSize)
+# pipelinePairRun.start()
+# pipelinePairRun.join()
 
 
 
 
-# #configure receptor and ligand in two steps
-#     pipelineRec         = createPipeline( inputRecQ, outputRecQ,bufferSize, singleConfiguration_01,  num)
-#     pipelineLig         = createPipeline( inputLigQ, outputLigQ,bufferSize, singleConfiguration_01, num)
-#     #configure grids and joined Modes
-#     pipelineRec2        = createPipeline( inputRecQ_2, outputRecQ2,bufferSize, singleConfiguration_02, inputRecQ_2.qsize())
-#     pipelineLig2        = createPipeline( inputLigQ_2, outputLigQ2,bufferSize, singleConfiguration_02, inputLigQ_2.qsize())
-#     #configure referenceStructures
-#     pipelineRecRef      = createPipeline( inputRecRefQ, outputRecRefQ,bufferSize, singleConfigurationRef,  num)
-#     pipelineLigRef      = createPipeline( inputLigRefQ, outputLigRefQ,bufferSize, singleConfigurationRef,  num)
-#     #runpairconfiguration
-#     pipelinePairConfig  = createPipeline( pairQ, pairQOutConfig,bufferSize, pairConfiguration,  num)
-#     #run docking, scoring and analysis
-#     pipelinePairRun     = createPipeline( pairQOutConfig, pairQOutRes,bufferSize, runConfiguration,  num)
+
+
+  
 
 
 
 
-        # inputRecQ.put((copy.deepcopy(receptorConfig),protein))
-        # inputRecQ_2.put((copy.deepcopy(receptorConfig),protein))
-        # inputLigQ.put((copy.deepcopy(ligandConfig),protein))
-        # inputLigQ_2.put((copy.deepcopy(ligandConfig),protein))
 
-        # inputRecRefQ.put((receptorRefConfig,protein))
-        # inputLigRefQ.put((ligandRefConfig,protein))
-        # pairQ.put((pairConfig,protein))
+
+
+
+
+
+
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 2, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new'},
+
+
+
+
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut_fresh'},
+
+# {"numModesRec":0,  "numModesLig":0, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':True, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_bound_fresh'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_fresh'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':True, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_manipulated_fresh'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_prune_fresh'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_fresh'},
+
+
+
+
+
+
+
+
+# {"numModesRec":0,  "numModesLig":1, "scale": 1, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned_2'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1.5, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.0, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 10, 'prune': True, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned'},
+
+
+# #cutPrunded
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': True, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut_pruned'},
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': True, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut_pruned_2'},
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.5, 'prune': True, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut_pruned'},
+
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': True, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut_pruned'},
+
+
+# #cut
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1.5, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.0, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 10, 'prune': False, 'cut':True,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_cut'},
+
+
+# #boundModes
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.01, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.8, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.0, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':False, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes'},
+
+
+# #doftest
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_modesOnly_singleDof'},
+
+
+
+# #doftest 
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': True, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': True, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 2, 'prune': True, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned_modesOnly_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': True, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_pruned_modesOnly_singleDof'},
+
+
+
+
+
+
+
+
+
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 10, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_new_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 10, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.5, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_modesOnly_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 0.1, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_modesOnly_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 2.5, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_modesOnly_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 5, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_modesOnly_singleDof'},
+# {"numModesRec":1,  "numModesLig":1, "scale": 10, 'prune': False, 'cut':False,'modesOnly':True,
+# 'bound':False, 'boundModes': True,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_boundModes_modesOnly_singleDof'},
+
+
+# {"numModesRec":1,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":1,  "numModesLig":0, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":0,  "numModesLig":1, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
+# {"numModesRec":0,  "numModesLig":0, "scale": 1, 'prune': False, 'cut':False,'modesOnly':False,
+# 'bound':False, 'boundModes': False,'singleDof':True, 'manipulateModes':False, 
+# 'rigidStart': False, 'overwrite': False, 'extension':'_hin99_singleDof'},
