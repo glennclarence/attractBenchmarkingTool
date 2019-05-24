@@ -19,16 +19,22 @@ basePath = paths["basePath"]
 utils.strideBinary = paths["strideBinary"]
 utils.rmscaBinary = paths["rmscaBinary"]
 protlist_file = basePath + "/protlist"
-dry = False
-verbose = True
-overwrite = False
+dry = F
+verbose = T
+overwrite = F
 save_consoleOutput = T
 
 configs = [
-{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99_7'},
-{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':F,'cut':T,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_cut1'},
-{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':T,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_pruned1'},
-{"numModesRec":1,"numModesLig":1, "scale": 1,'prune':T,'cut':T,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_cut_pruned1'},
+{"numModesRec":5,"numModesLig":5, "scale": 1,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99'},
+{"numModesRec":5,"numModesLig":5, "scale": 2,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99'},
+{"numModesRec":5,"numModesLig":5, "scale": 5,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99'},
+{"numModesRec":5,"numModesLig":5, "scale": 10,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99'},
+{"numModesRec":5,"numModesLig":5, "scale": 0.7,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':F,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_hin99'},
+
+
+#{"numModesRec":1,"numModesLig":1, "scale": 5,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':T,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_boundModes'},
+#{"numModesRec":1,"numModesLig":1, "scale": 0,'prune':F,'cut':F,'modesOnly':F,'bound':F,'boundModes':T,'singleDof':F,'manipulateModes':F,'rigidStart':F,'overwrite': F,'extension':'_boundModes'},
+
 ]
 
 with open(basePath + "/configs_{}.json".format(str(datetime.now())), "w") as write_file:
@@ -104,7 +110,7 @@ runConfiguration = [ {'conf':
      'numThreads': 1},
      {'conf':
          { 'setting':'scoring',             'configurator':'scoring'},
-      'numThreads':2},
+      'numThreads':4},
     {'conf':[
         { 'setting': 'fill_energy',         'configurator': 'fill_energy'   },
         { 'setting': 'sorting',             'configurator': 'sorting'       },
@@ -112,25 +118,25 @@ runConfiguration = [ {'conf':
         { 'setting': 'top',                 'configurator': 'top'           },
         { 'setting': 'demode',              'configurator': 'demode'        },
         { 'setting': 'irmsd',               'configurator': 'irmsd'         },
-        ###{ 'setting': 'irmsd_nomodes',     'configurator': 'irmsd'         },
+        ####{ 'setting': 'irmsd_nomodes',     'configurator': 'irmsd'         },
         { 'setting': 'rmsd',                'configurator': 'rmsd'          },
-        ## { 'setting': 'rmsd_unsorted',      'configurator': 'rmsd'          },
-        ##{ 'setting': 'rmsd_nomodes',      'configurator': 'rmsd'          },
+        ### { 'setting': 'rmsd_unsorted',      'configurator': 'rmsd'          },
+        ###{ 'setting': 'rmsd_nomodes',      'configurator': 'rmsd'          },
         { 'setting': 'fnat',                'configurator': 'fnat'          },
-        ###{ 'setting': 'fnat_nomodes',      'configurator': 'fnat'          },
+        ####{ 'setting': 'fnat_nomodes',      'configurator': 'fnat'          },
         { 'setting': 'saveSettings',        'configurator': 'saveSettings'  },
-        { 'setting': 'collect'  ,           'configurator': 'collect'       },
+       # { 'setting': 'collect'  ,           'configurator': 'collect'       },
          { 'setting': 'dof_evaluation',      'configurator': 'dof_evaluation'},
         { 'setting': 'dof_extractionLow',   'configurator': 'dof_extraction'},
         { 'setting': 'dof_extractionHigh',  'configurator': 'dof_extraction'},
          { 'setting': 'dof_evaluation_low',  'configurator': 'dof_evaluation'},
          { 'setting': 'dof_evaluation_high', 'configurator': 'dof_evaluation'},
-        { 'setting': 'collect_Low'  ,       'configurator': 'collect'       },
-        { 'setting': 'collect_High'  ,      'configurator': 'collect'       },
-        ##{ 'setting': 'interface',          'configurator':'interface'      },
-        { 'setting': 'interface_low',       'configurator':'interface'      },
-        { 'setting': 'interface_high',      'configurator':'interface'      }
-    ],'numThreads': 4}
+        #{ 'setting': 'collect_Low'  ,       'configurator': 'collect'       },
+        #{ 'setting': 'collect_High'  ,      'configurator': 'collect'       },
+        ###{ 'setting': 'interface',          'configurator':'interface'      },
+        #{ 'setting': 'interface_low',       'configurator':'interface'      },
+        #{ 'setting': 'interface_high',      'configurator':'interface'      }
+    ],'numThreads': 6}
     ]
 
 bufferSize = 4*len(proteins) * len(configs)
@@ -178,10 +184,10 @@ for i,config in enumerate(configs):
     if use_cut:
         protType = "unbound-cut"
         protTypeRef = "refe-cut"
-    if use_boundModes:
-        modeType = "bound"
-    if use_manipulated:
-        modeType = "hin99"
+    # if use_boundModes:
+    #     modeType = "bound"
+    # if use_manipulated:
+    #     modeType = "hin99"
 
     numModesRec = config['numModesRec']
     numModesLig = config['numModesLig']
@@ -241,11 +247,8 @@ for i,config in enumerate(configs):
             pythonBinary    =  paths["python2Binary"],
             attractToolPath =  paths["attractToolPath"],
             attractBinaryGPU = paths["attractBinaryGPU"],
-            deviceIds = [0,1], evScale=scale,
+            deviceIds = [0], evScale=scale,
             modeType = modeType))
-
-        #receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
-        #ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
 
 
         receptorConfig.settings['cut']['in']['pdb'] =    'superimpose'
@@ -253,9 +256,6 @@ for i,config in enumerate(configs):
 
         receptorConfig.settings['allAtom']['in']['protein'] =    'superimpose'
         ligandConfig.settings['allAtom']['in']['protein']   =    'superimpose'
-
-        # receptorRefConfig.files['refpdb']   = receptorConfig.files['pdb'] 
-        # ligandRefConfig.files['refpdb']     =   ligandConfig.files['pdb'] 
 
         receptorConfig.files['refpdb']   = receptorRefConfig.files['pdb'] 
         ligandConfig.files['refpdb']     =   ligandRefConfig.files['pdb'] 
@@ -329,18 +329,9 @@ for i,config in enumerate(configs):
 
             receptorRefConfig.files['cut']['name']  = '{}{}-{}'.format(protein, "A","refe")
             ligandRefConfig.files['cut']['name'] = '{}{}-{}'.format(protein, "B","refe")
-            
-            # receptorRefConfig.settings['superimpose']['in']['pdb'] =    'cut'
-            # ligandRefConfig.settings['superimpose']['in']['pdb'] =      'cut'
-            
+
             receptorRefConfig.settings['allAtom']['in']['protein'] =    'cut'
             ligandRefConfig.settings['allAtom']['in']['protein'] =      'cut'
-            
-            #receptorRefConfig.files['refpdb'] = receptorConfig.files['cut'] 
-            #ligandRefConfig.files['refpdb'] =   ligandConfig.files['cut'] 
-
-            # receptorConfig.files['refpdb'] = receptorRefConfig.files['cut'] 
-            # ligandConfig.files['refpdb'] =   ligandRefConfig.files['cut'] 
 
             receptorRefConfig.files['cutlog'] = receptorConfig.files['cutlog'] 
             ligandRefConfig.files['cutlog'] = ligandConfig.files['cutlog'] 
@@ -362,20 +353,12 @@ for i,config in enumerate(configs):
             receptorConfig.settings['grid']['in']['protein']  = 'prune'
             ligandConfig.settings['grid']['in']['protein']  = 'prune'
 
-            # receptorConfig.settings['modes']['in']['protein']  = 'prune'
-            # ligandConfig.settings['modes']['in']['protein']  = 'prune'
-
             pairFiles['gridRec'] =      receptorConfig.files['grid']
             pairFiles['gridLig'] =      ligandConfig.files['grid']
             pairFiles['dof']["extension"] =     "-dof-pruned.dat"
             pairFiles['dof_test']["extension"] =     "-dof_test-pruned.dat"
 
         if use_boundModes:
-            # ligandConfig.files['modes'] = ligandConfig.files['bound_modes']
-            # receptorConfig.files['modes'] = receptorConfig.files['bound_modes']
-            
-            # ligandConfig.files['modes_heavy'] = ligandConfig.files['bound_modes_heavy']
-            # receptorConfig.files['modes_heavy'] = receptorConfig.files['bound_modes_heavy']
 
             receptorConfig.settings['mode_evaluation']['in']['mode_file'] =  'bound_modes'
             ligandConfig.settings['mode_evaluation']['in']['mode_file'] =  'bound_modes'
@@ -384,13 +367,116 @@ for i,config in enumerate(configs):
             pairFiles['modesLig_heavy'] =     ligandConfig.files['bound_modes_heavy']
             pairFiles['modesRec'] =     receptorConfig.files['bound_modes']
             pairFiles['modesLig'] =     ligandConfig.files['bound_modes']
-
+            pairFiles['joinedModes']['extension'] = "-joinedModes-r{}-l{}-{}.dat".format(1,1,'bound')
+            pairFiles['joinedModes_heavy']['extension'] = "-joinedModes-heavy-r{}-l{}-{}.dat".format(1,1,'bound_heavy')
         
 
         if use_singleDof:
             pairConfig.settings['docking']['in']['dof'] = 'dof_test'
 
         if use_manipulated:
+
+            pairFiles['modesRec'] =     receptorConfig.files['modes_manipulate']
+            pairFiles['modesLig'] =     ligandConfig.files['modes_manipulate']        
+            pairFiles['modesRec_heavy'] =     receptorConfig.files['modes_manipulate_heavy']
+            pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
+            pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
+            pairFiles['joinedModes']['extension'] = "-joinedModes-r{}-l{}-{}.dat".format(20,20,'manipulated')
+            pairFiles['joinedModes_heavy']['extension'] = "-joinedModes-heavy-r{}-l{}-{}.dat".format(20,20,'manipulated')
+
+        if config['rigidStart']:
+            pairFiles['rigidStart'] = {}
+            pairFiles['rigidStart']['folder'] = "bm_dG_mr0_ml0_s1p000000_sO_c50_mr0_ml0_s1p000000_hin99/result"
+            pairFiles['rigidStart']['name'] = "{}".format(protein)
+            pairFiles['rigidStart']['extension'] = "-unbound-docking.dat"
+            pairConfig.settings['docking']['in']['dof'] = 'rigidStart'
+
+        if config['modesOnly']:
+            pairConfig.settings['docking']['modesOnly'] = True
+
+        pipelineRec.put((copy.deepcopy(     receptorConfig),protein))         
+        pipelineLig.put((copy.deepcopy(     ligandConfig),protein))                  
+        pipelineRec2.put((copy.deepcopy(    receptorConfig),protein))                 
+        pipelineLig2.put((copy.deepcopy(    ligandConfig),protein))                  
+        pipelineRecRef.put((copy.deepcopy(  receptorRefConfig),protein))      
+        pipelineLigRef.put((copy.deepcopy(  ligandRefConfig),protein))      
+        pipelinePairConfig.put((copy.deepcopy(pairConfig),protein))  
+        pipelinePairRun.put((copy.deepcopy( pairConfig),protein))     
+
+
+# print("\n DO FIRST CONFIGURATION")
+# logging.warning("\n\n---------------------DO FIRST CONFIGURATION-------------------------\n")
+
+# pipelineRec.start()
+# pipelineLig.start()
+# pipelineRec.join()
+# pipelineLig.join()
+
+
+# print("\n DO REFERENCE CONFIGURATION")
+# logging.warning("\n\n---------------------DO REFERENCE CONFIGURATION---------------------\n")
+
+# pipelineRecRef.start()
+# pipelineLigRef.start()
+# pipelineRecRef.join()
+# pipelineLigRef.join()
+
+# print("\nDO SECOND CONFIGURATION")
+# logging.warning("\n\n---------------------DO SECOND CONFIGURATION------------------------\n")
+
+# pipelineRec2.start()
+# pipelineLig2.start()
+# pipelineRec2.join()
+# pipelineLig2.join()
+
+print("\nDO PAIR CONFIGURATION")
+logging.warning("\n\n---------------------DO PAIR CONFIGURATION--------------------------\n")
+
+pipelinePairConfig.start()
+pipelinePairConfig.join()
+
+print("\nDO RUN")
+logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
+
+pipelinePairRun.start()
+pipelinePairRun.join()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+        # receptorRefConfig.files['refpdb']   = receptorConfig.files['pdb'] 
+        # ligandRefConfig.files['refpdb']     =   ligandConfig.files['pdb'] 
+
+
+            
+            # receptorRefConfig.settings['superimpose']['in']['pdb'] =    'cut'
+            # ligandRefConfig.settings['superimpose']['in']['pdb'] =      'cut'
+            
+
+
+        #receptorRefConfig.settings['allAtom']['in']['protein'] =    'superimpose'
+        #ligandRefConfig.settings['allAtom']['in']['protein'] =      'superimpose'
+
+
+
+
             # receptorConfig.settings['modes']['dryRun'] =  True
             # ligandConfig.settings['modes']['dryRun'] =  True
 
@@ -407,13 +493,6 @@ for i,config in enumerate(configs):
             # receptorConfig.settings['mode_evaluation']['in']['mode_file'] =  'modes_manipulate'
             # ligandConfig.settings['mode_evaluation']['in']['mode_file'] =  'modes_manipulate'
 
-            pairFiles['modesRec'] =     receptorConfig.files['modes_manipulate']
-            pairFiles['modesLig'] =     ligandConfig.files['modes_manipulate']        
-            pairFiles['modesRec_heavy'] =     receptorConfig.files['modes_manipulate_heavy']
-            pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
-            pairFiles['modesLig_heavy'] =     ligandConfig.files['modes_manipulate_heavy']    
-            pairFiles['joinedModes']['extension'] = "-joinedModes-r{}-l{}-{}.dat".format(20,20,'manipulated')
-            pairFiles['joinedModes_heavy']['extension'] = "-joinedModes-heavy-r{}-l{}-{}.dat".format(20,20,'manipulated')
 
         # pairConfig.settings['interface_low']['overwrite'] = True
         # pairConfig.settings['interface_high']['overwrite'] = True
@@ -423,73 +502,29 @@ for i,config in enumerate(configs):
         # ligandConfig.settings['protein_evaluation']['overwrite'] = True
 
 
-        if config['rigidStart']:
-            pairFiles['rigidStart'] = {}
-            pairFiles['rigidStart']['folder'] = "bm_dG_mr0_ml0_s1p000000_sO_c50_mr0_ml0_s1p000000_hin99/result"
-            pairFiles['rigidStart']['name'] = "{}".format(protein)
-            pairFiles['rigidStart']['extension'] = "-unbound-docking.dat"
-            pairConfig.settings['docking']['in']['dof'] = 'rigidStart'
-
-        if config['modesOnly']:
-            pairConfig.settings['docking']['modesOnly'] = True
 
         #pairConfig.settings['dof_evaluation_low']['overwrite'] = True
         #pairConfig.settings['dof_evaluation_high']['overwrite'] = True
         #pairConfig.settings['dof_evaluation']['overwrite'] = True
 
-        pipelineRec.put((copy.deepcopy(     receptorConfig),protein))         
-        pipelineLig.put((copy.deepcopy(     ligandConfig),protein))                  
-        pipelineRec2.put((copy.deepcopy(    receptorConfig),protein))                 
-        pipelineLig2.put((copy.deepcopy(    ligandConfig),protein))                  
-        pipelineRecRef.put((copy.deepcopy(  receptorRefConfig),protein))      
-        pipelineLigRef.put((copy.deepcopy(  ligandRefConfig),protein))      
-        pipelinePairConfig.put((copy.deepcopy(pairConfig),protein))  
-        pipelinePairRun.put((copy.deepcopy( pairConfig),protein))     
-
-
-print("\n DO FIRST CONFIGURATION")
-logging.warning("\n\n---------------------DO FIRST CONFIGURATION-------------------------\n")
-
-pipelineRec.start()
-pipelineLig.start()
-pipelineRec.join()
-pipelineLig.join()
-
-
-print("\n DO REFERENCE CONFIGURATION")
-logging.warning("\n\n---------------------DO REFERENCE CONFIGURATION---------------------\n")
-
-pipelineRecRef.start()
-pipelineLigRef.start()
-pipelineRecRef.join()
-pipelineLigRef.join()
-
-print("\nDO SECOND CONFIGURATION")
-logging.warning("\n\n---------------------DO SECOND CONFIGURATION------------------------\n")
-
-pipelineRec2.start()
-pipelineLig2.start()
-pipelineRec2.join()
-pipelineLig2.join()
-
-print("\nDO PAIR CONFIGURATION")
-logging.warning("\n\n---------------------DO PAIR CONFIGURATION--------------------------\n")
-
-pipelinePairConfig.start()
-pipelinePairConfig.join()
-
-# print("\nDO RUN")
-# logging.warning("\n\n---------------------DO RUN-----------------------------------------\n")
-
-# pipelinePairRun.start()
-# pipelinePairRun.join()
+            # ligandConfig.files['modes'] = ligandConfig.files['bound_modes']
+            # receptorConfig.files['modes'] = receptorConfig.files['bound_modes']
+            
+            # ligandConfig.files['modes_heavy'] = ligandConfig.files['bound_modes_heavy']
+            # receptorConfig.files['modes_heavy'] = receptorConfig.files['bound_modes_heavy']
 
 
 
+            # receptorConfig.settings['modes']['in']['protein']  = 'prune'
+            # ligandConfig.settings['modes']['in']['protein']  = 'prune'
 
 
+            
+            #receptorRefConfig.files['refpdb'] = receptorConfig.files['cut'] 
+            #ligandRefConfig.files['refpdb'] =   ligandConfig.files['cut'] 
 
-  
+            # receptorConfig.files['refpdb'] = receptorRefConfig.files['cut'] 
+            # ligandConfig.files['refpdb'] =   ligandRefConfig.files['cut'] 
 
 
 

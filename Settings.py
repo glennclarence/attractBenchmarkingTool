@@ -346,7 +346,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
         overwrite = False,
         deviceIds = [0],
         interfaceCutoff = 5,
-        numCollectStructures = 50,
+        numCollectStructures = 1000,
         scoringCutoff = 50,
         num_dof_eval = 100,
         checkInput = True,
@@ -750,7 +750,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'configurator':'rmsd',
                 "in": 
                 {
-                    "inputDof":"deRedundantResult",
+                    "inputDof":"topResult",
                     "ligand":"ligand",
                     "ligandRef":"ligandRef",
                     "modes":"joinedModes",
@@ -809,7 +809,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'configurator':'irmsd',
                 "in": 
                 {
-                    "inputDof":"deRedundantResult",
+                    "inputDof":"topResult",
                     "receptor":"receptor_heavy",
                     "receptorRef":"receptorRef_heavy",
                     "ligand":"ligand_heavy",
@@ -847,7 +847,7 @@ def getDefaultPairSetting(benchmarkName,protein, protType, protTypeRef, numModes
                 'configurator':'fnat',
                 "in": 
                 {
-                    "inputDof":"deRedundantResult",
+                    "inputDof":"topResult",
                     "receptor":"receptor_heavy",
                     "receptorRef":"receptorRef_heavy",
                     "ligand":"ligand_heavy",
